@@ -189,6 +189,39 @@
   .bar-label{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:5px;}
   .bar-track{height:9px;background:var(--grey-soft);border-radius:5px;overflow:hidden;}
   .bar-fill{height:100%;background:var(--red);border-radius:5px;}
+  .pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:14px;}
+  .pager .meta{font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .analytics-frame{width:100%;height:720px;border:0;border-radius:0;background:transparent;display:block;}
+  .analytics-embed{border:0;background:transparent;padding:0;box-shadow:none;}
+  .bi-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+  .bi-kpis .kpi b{font-size:26px;}
+  .bi-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px;}
+  .bi-grid .span-2{grid-column:1 / -1;}
+  .chart-card{min-height:240px;}
+  .pie-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+  .pie-legend{display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:600;min-width:140px;flex:1;}
+  .pie-legend div{display:flex;align-items:center;gap:8px;}
+  .pie-legend i{width:12px;height:12px;border-radius:2px;flex:0 0 auto;}
+  .pie-legend b{margin-left:auto;}
+  .pie-legend .pct{color:var(--ink-faint);font-weight:600;width:36px;text-align:right;}
+  .pbi-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;padding-top:10px;border-top:1px solid var(--border);}
+  .pbi-legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-soft);}
+  .pbi-legend i{width:12px;height:12px;border-radius:2px;flex:0 0 auto;}
+  .vbars{display:flex;align-items:flex-end;gap:18px;height:210px;padding:8px 8px 0;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .vbar{flex:1 0 72px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;}
+  .vbar-val{font-size:12px;font-weight:700;margin-bottom:4px;color:var(--ink);}
+  .vbar-col{width:36px;border-radius:2px 2px 0 0;min-height:2px;}
+  .vbar-lbl{font-size:11px;color:var(--ink-soft);font-weight:600;margin-top:8px;text-align:center;line-height:1.25;max-width:96px;}
+  .hbars{display:flex;flex-direction:column;gap:12px;}
+  .hbar{display:grid;grid-template-columns:minmax(110px,200px) 1fr 28px;align-items:center;gap:10px;}
+  .hbar-name{font-size:12px;font-weight:600;text-align:right;line-height:1.25;}
+  .hbar-track{height:18px;background:var(--grey-soft);border-radius:2px;overflow:hidden;}
+  .hbar-fill{height:100%;border-radius:2px;min-width:2px;}
+  .hbar-val{font-size:12px;font-weight:700;}
+  @media (max-width:900px){
+    .bi-kpis{grid-template-columns:repeat(2,1fr);}
+    .bi-grid{grid-template-columns:1fr;}
+  }
 
   .code-block{background:var(--grey-soft);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:ui-monospace,'SF Mono',Consolas,monospace;font-size:11.5px;line-height:1.6;overflow-x:auto;white-space:pre;max-height:340px;overflow-y:auto;}
   .segctrl{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
@@ -260,6 +293,8 @@ const ICONS = {
   dashboard:'<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   crm:'<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>',
   field:'<svg class="ic" viewBox="0 0 24 24"><path d="M21 10c0 6-9 12-9 12S3 16 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+  sales:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 16l5-5 4 4 7-8"/><path d="M14 7h6v6"/></svg>',
+  analytics:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-9Z"/><path d="M14 3.2A9 9 0 0 1 20.8 10H14Z"/></svg>',
   reports:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M7 21V10M12 21V4M17 21v-7"/></svg>',
   logs:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" style="display:none;"/><path d="M6 4h12v16l-3-2-3 2-3-2-3 2Z"/><path d="M9 9h6M9 13h6"/></svg>',
   coverage:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg>',
@@ -379,9 +414,11 @@ const RETURN_STEPS = [
 const RETURN_ROLES = { rpo:'logistics', credit_note:'ho' };
 
 const NAV = [
-  { key:'dashboard', label:'Dashboard', icon:'dashboard' },
+  { key:'dashboard', label:'Dashboard', icon:'dashboard', href:'https://stovekraft.clappia.com/dashboard' },
   { key:'crm', label:'Service CRM', icon:'crm' },
   { key:'field', label:'Field Tracker', icon:'field' },
+  { key:'sales', label:'Sales Tracker', icon:'sales', href:'https://stovekraft.clappia.com/app/QMI882905' },
+  { key:'analytics', label:'Analytics', icon:'analytics' },
   { key:'reports', label:'Reports', icon:'reports' },
   { key:'logs', label:'Logs', icon:'logs' },
 ];
@@ -390,10 +427,11 @@ let state = { tickets: [], counter: 1000, integrationLog: [], clappiaLog: [] };
 let ticketsLoading = false;
 let ticketsRefreshing = false;
 let ticketsLoadError = null;
-let activePage = 'dashboard';
+let activePage = 'crm';
 let activeTicketId = null;
 let pendingPin = null;
-let crmSubtab = 'tickets';
+let crmPage = 1;
+const CRM_PAGE_SIZE = 5;
 let logsSubtab = 'activity';
 let sapMode = 'simulated'; // 'simulated' | 'real'
 let sidebarCollapsed = false;
@@ -454,6 +492,7 @@ function clappiaLog(action, detail){
 const CLAPPIA_API_BASE = 'https://api-public-v4.clappia.com';
 const CLAPPIA_API_KEY = 'sto58073650c09f259d0b409aa55103df2ad0189f';
 const CLAPPIA_TICKETS_APP_ID = 'LEB315123';
+const CLAPPIA_WORKPLACE_ID = 'PUE82036395';
 
 /* Every ticket on this page is a live Clappia submission. Pages are
    followed with lastSubmissionId until metadata.totalCount is reached.
@@ -546,6 +585,40 @@ async function clappiaLookupPincode(pincode){
   const r = PINCODE_MAP[pincode] || { mapped:false, centre:null };
   clappiaLog('Pincode lookup', pincode + ' → ' + (r.mapped ? ('Mapped: ' + r.centre) : 'Unmapped'));
   return r;
+}
+/* Called when allocation is finished and the ticket enters Field Diagnosis
+   (appointment booked, visit outcome not yet recorded). */
+async function clappiaSetFieldDiagnosisStatus(ticket){
+  const submissionId = ticket && ticket.clappiaSubmissionId;
+  if(!submissionId){
+    clappiaLog('Update status', (ticket ? ticket.id : 'Ticket') + ' has no Clappia submission id — status left unchanged');
+    return;
+  }
+  try{
+    const res = await fetch(CLAPPIA_API_BASE + '/submissions/updateStatus', {
+      method: 'POST',
+      headers: { 'x-api-key': CLAPPIA_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        appId: CLAPPIA_TICKETS_APP_ID,
+        workplaceId: CLAPPIA_WORKPLACE_ID,
+        submissionId: submissionId,
+        status: { name: 'Field Diagnosis', comments: '' },
+      }),
+    });
+    if(!res.ok){
+      let detail = '';
+      try{ detail = await res.text(); }catch(e){}
+      throw new Error('HTTP ' + res.status + (detail ? ' ' + detail : ''));
+    }
+    addLog(ticket, 'Clappia status set to Field Diagnosis');
+    ticket.log[ticket.log.length-1].clappia = true;
+    clappiaLog('Update status', ticket.id + ' / ' + submissionId + ' → Field Diagnosis');
+  }catch(err){
+    const msg = (err && err.message) ? err.message : 'status update failed';
+    addLog(ticket, 'Could not set Clappia status to Field Diagnosis — ' + msg);
+    ticket.log[ticket.log.length-1].clappia = true;
+    clappiaLog('Update status', ticket.id + ' / ' + submissionId + ' failed — ' + msg);
+  }
 }
 async function clappiaSubmitFieldEntry(ticketId, payload){
   // TODO(Cursor): replace with a real Clappia "editSubmission" call against the
@@ -1002,10 +1075,11 @@ function buildNav(){
   nav.innerHTML = '';
   NAV.forEach(n=>{
     const el = document.createElement('div');
-    el.className = 'nav-item' + (activePage===n.key && !activeTicketId ? ' active':'');
+    el.className = 'nav-item' + (!n.href && activePage===n.key && !activeTicketId ? ' active':'');
     el.title = n.label;
     el.innerHTML = ICONS[n.icon] + '<span class="lbl">'+n.label+'</span>';
     el.dataset.action = 'nav'; el.dataset.page = n.key;
+    if(n.href) el.dataset.href = n.href;
     nav.appendChild(el);
   });
 }
@@ -1047,9 +1121,10 @@ function render(){
     titleEl.textContent = t.id; subEl.textContent = t.customerName + ' · ' + t.product;
     content.innerHTML = renderTicketDetail(t); bindEvents(); return;
   }
-  if(activePage==='dashboard'){ titleEl.textContent='Dashboard'; subEl.textContent='Overview across all service tickets'; content.innerHTML = renderDashboardPage(); }
-  else if(activePage==='crm'){ titleEl.textContent='Service CRM'; subEl.textContent='All tickets and the pincode coverage reference'; content.innerHTML = renderCrmPage(); }
+  if(activePage==='dashboard'){ activePage = 'crm'; }
+  if(activePage==='crm'){ titleEl.textContent='Service CRM'; subEl.textContent='All service tickets'; content.innerHTML = renderCrmPage(); }
   else if(activePage==='field'){ titleEl.textContent='Field Tracker'; subEl.textContent='Technician appointments and field-entry sync'; content.innerHTML = renderFieldPage(); }
+  else if(activePage==='analytics'){ titleEl.textContent='Analytics'; subEl.textContent='Intake, stage, and brand breakdowns'; content.innerHTML = renderAnalyticsPage(); }
   else if(activePage==='reports'){ titleEl.textContent='Reports'; subEl.textContent='Ticket breakdowns'; content.innerHTML = renderReportsPage(); }
   else if(activePage==='logs'){ titleEl.textContent='Logs'; subEl.textContent='Activity, SAP integration, and Clappia sync'; content.innerHTML = renderLogsPage(); }
   bindEvents();
@@ -1140,22 +1215,16 @@ function renderDashboardPage(){
 
 /* ========================= PAGE: SERVICE CRM ========================= */
 function renderCrmPage(){
-  let html = `<div class="subtabs">
-    <div class="subtab ${crmSubtab==='tickets'?'active':''}" data-action="crm-subtab" data-sub="tickets">All Tickets</div>
-    <div class="subtab ${crmSubtab==='coverage'?'active':''}" data-action="crm-subtab" data-sub="coverage">Pincode Coverage</div>
-  </div>`;
-  if(crmSubtab==='coverage'){
-    const rows = Object.entries(PINCODE_MAP).map(([pc,v])=>`
-      <tr><td>${pc}</td><td>${v.mapped?'<span class="tag green">Mapped</span>':'<span class="tag amber">Unmapped</span>'}</td><td>${v.centre||'—  routes to branch for manual allocation'}</td></tr>
-    `).join('');
-    html += `<div class="card"><h3>${ICONS.coverage}Reference table used for auto-allocation <span class="tag clappia">Clappia</span></h3>
-      <table class="list"><tr><th>Pincode</th><th>Coverage</th><th>Service centre</th></tr>${rows}</table>
-      <div class="pin-hint" style="margin-top:12px;">Every ticket's pincode lookup calls the stub <code>clappiaLookupPincode()</code> — see Logs &rarr; Clappia Sync for each call fired.</div>
-    </div>`;
-    return html;
-  }
   const c = kpiCounts();
-  html += `<div class="kpi-strip">
+  const all = sortedDesc(state.tickets);
+  const pages = Math.max(1, Math.ceil(all.length / CRM_PAGE_SIZE));
+  if(crmPage > pages) crmPage = pages;
+  if(crmPage < 1) crmPage = 1;
+  const start = (crmPage - 1) * CRM_PAGE_SIZE;
+  const pageRows = all.slice(start, start + CRM_PAGE_SIZE);
+  const from = all.length ? start + 1 : 0;
+  const to = Math.min(start + CRM_PAGE_SIZE, all.length);
+  let html = `<div class="kpi-strip">
       <div class="kpi"><b>${c.total}</b><span>All tickets</span></div>
       <div class="kpi"><b>${c.awaiting}</b><span>Awaiting allocation/visit</span></div>
       <div class="kpi"><b>${c.unmapped}</b><span>Pincode unmapped</span></div>
@@ -1168,7 +1237,13 @@ function renderCrmPage(){
         <h3 style="margin:0;">Service tickets</h3>
         ${refreshTicketsButton()}
       </div>
-      ${ticketsLoading ? '<div class="empty">Loading tickets from Clappia…</div>' : (state.tickets.length ? `<table class="list"><tr><th>Ticket</th><th>Customer</th><th>Product</th><th>Pincode</th><th>Stage</th></tr>${ticketRowsHtml(state.tickets)}</table>` : '<div class="empty">No submissions returned by Clappia.</div>')}
+      ${ticketsLoading ? '<div class="empty">Loading tickets from Clappia…</div>' : (all.length ? `<table class="list"><tr><th>Ticket</th><th>Customer</th><th>Product</th><th>Pincode</th><th>Stage</th></tr>${ticketRowsHtml(pageRows)}</table>
+      <div class="pager">
+        <span class="meta">${from}–${to} of ${all.length}</span>
+        <button type="button" class="btn btn-sm" data-action="crm-page" data-dir="prev"${crmPage<=1?' disabled':''}>Previous</button>
+        <span class="meta">Page ${crmPage} of ${pages}</span>
+        <button type="button" class="btn btn-sm" data-action="crm-page" data-dir="next"${crmPage>=pages?' disabled':''}>Next</button>
+      </div>` : '<div class="empty">No submissions returned by Clappia.</div>')}
     </div>`;
   return html;
 }
@@ -1189,6 +1264,99 @@ function renderFieldPage(){
       <h3>${ICONS.field}Field team activity <span class="tag clappia">Clappia</span></h3>
       <div class="clap-note"><span class="clap-badge">CLAPPIA</span>When a technician records a visit outcome on their phone, that submission is meant to post directly to Clappia — this table shows every ticket currently in that hand-off, and each outcome recorded below fires the <code>clappiaSubmitFieldEntry()</code> stub (see Logs &rarr; Clappia Sync).</div>
       ${active.length ? `<table class="list" style="margin-top:14px;"><tr><th>Ticket</th><th>Customer</th><th>Technician</th><th>Appointment</th><th>Status</th></tr>${rows}</table>` : '<div class="empty">No active field visits right now.</div>'}
+    </div>`;
+}
+
+/* ========================= PAGE: ANALYTICS ========================= */
+const CLAPPIA_ANALYTICS_EMBED = 'https://stovekraft.embed-analytics.clappia.com/console/app/LEB315123/analytics/7e9c3487589b4ef08b88e29c1d8d38f2/filtersv2';
+const CHART_PALETTE = ['#2563EB','#F59E0B','#10B981','#EF4444'];
+function chartColor(i){ return CHART_PALETTE[i % CHART_PALETTE.length]; }
+function chartGroups(tickets, groupFn){
+  const counts = {};
+  tickets.forEach(t=>{ const k = groupFn(t) || '—'; counts[k] = (counts[k]||0)+1; });
+  return Object.entries(counts);
+}
+function chartLegendRow(entries){
+  return `<div class="pbi-legend">${entries.map(([k], i)=>`<span><i style="background:${chartColor(i)}"></i>${k}</span>`).join('')}</div>`;
+}
+function pieSvg(entries, donut){
+  const total = entries.reduce((s,[,v])=>s+v, 0) || 1;
+  const cx = 80, cy = 80, r = 70, ri = 44;
+  if(!entries.length) return '';
+  if(entries.length === 1){
+    const color = chartColor(0);
+    return `<svg viewBox="0 0 160 160" width="168" height="168" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>${donut ? `<circle cx="${cx}" cy="${cy}" r="${ri}" fill="var(--panel)"/><text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">${total}</text>` : ''}</svg>`;
+  }
+  let angle = -Math.PI / 2;
+  const slices = entries.map(([,v], i)=>{
+    const sweep = (v / total) * Math.PI * 2;
+    const a0 = angle, a1 = angle + sweep;
+    angle = a1;
+    const large = sweep > Math.PI ? 1 : 0;
+    const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const color = chartColor(i);
+    if(!donut) return `<path d="M${cx} ${cy} L${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${color}"/>`;
+    const ix0 = cx + ri * Math.cos(a0), iy0 = cy + ri * Math.sin(a0);
+    const ix1 = cx + ri * Math.cos(a1), iy1 = cy + ri * Math.sin(a1);
+    return `<path d="M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} L${ix1.toFixed(2)} ${iy1.toFixed(2)} A${ri} ${ri} 0 ${large} 0 ${ix0.toFixed(2)} ${iy0.toFixed(2)} Z" fill="${color}"/>`;
+  }).join('');
+  const hole = donut ? `<circle cx="${cx}" cy="${cy}" r="${ri - 0.5}" fill="var(--panel)"/><text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">${total}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink-faint)">TICKETS</text>` : '';
+  return `<svg viewBox="0 0 160 160" width="168" height="168" aria-hidden="true">${slices}${hole}</svg>`;
+}
+function chartLegend(entries){
+  const total = entries.reduce((s,[,v])=>s+v, 0) || 1;
+  return `<div class="pie-legend">${entries.map(([k,v], i)=>`<div><i style="background:${chartColor(i)}"></i><span>${k}</span><b>${v}</b><span class="pct">${Math.round(v / total * 100)}%</span></div>`).join('')}</div>`;
+}
+function pieCard(title, entries, donut){
+  if(!entries.length) return `<div class="card chart-card"><h3>${title}</h3><div class="empty">No data yet.</div></div>`;
+  return `<div class="card chart-card"><h3>${title}</h3><div class="pie-wrap">${pieSvg(entries, donut)}${chartLegend(entries)}</div></div>`;
+}
+function vbarCard(title, entries){
+  if(!entries.length) return `<div class="card chart-card"><h3>${title}</h3><div class="empty">No data yet.</div></div>`;
+  const max = Math.max(1, ...entries.map(([,v])=>v));
+  const cols = entries.map(([k,v], i)=>`
+    <div class="vbar">
+      <div class="vbar-val">${v}</div>
+      <div class="vbar-col" style="height:${Math.max(8, Math.round(v / max * 150))}px;background:${chartColor(i)};"></div>
+      <div class="vbar-lbl">${k}</div>
+    </div>`).join('');
+  return `<div class="card chart-card"><h3>${title}</h3><div class="vbars">${cols}</div>${chartLegendRow(entries)}</div>`;
+}
+function hbarCard(title, entries){
+  if(!entries.length) return `<div class="card chart-card"><h3>${title}</h3><div class="empty">No data yet.</div></div>`;
+  const ranked = entries.slice().sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(1, ...ranked.map(([,v])=>v));
+  const rows = ranked.map(([k,v], i)=>`
+    <div class="hbar">
+      <div class="hbar-name">${k}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(2, Math.round(v / max * 100))}%;background:${chartColor(i)};"></div></div>
+      <div class="hbar-val">${v}</div>
+    </div>`).join('');
+  return `<div class="card chart-card"><h3>${title}</h3><div class="hbars">${rows}</div>${chartLegendRow(ranked)}</div>`;
+}
+function renderAnalyticsPage(){
+  const tickets = state.tickets;
+  const c = kpiCounts();
+  const intake = chartGroups(tickets, t=>t.intakeChannel);
+  const stages = chartGroups(tickets, t=>stageTag(t).replace(/<[^>]+>/g,''));
+  const brands = chartGroups(tickets, t=>t.brand);
+  const centres = chartGroups(tickets, t=>t.serviceCentre || 'Unallocated');
+  return `
+    <div class="bi-kpis">
+      <div class="kpi"><b>${c.total}</b><span>All tickets</span></div>
+      <div class="kpi"><b>${c.awaiting}</b><span>Awaiting allocation/visit</span></div>
+      <div class="kpi"><b>${c.closure}</b><span>In closure & claims</span></div>
+      <div class="kpi"><b>${c.closed}</b><span>Closed & paid out</span></div>
+    </div>
+    <div class="bi-grid">
+      ${pieCard('Intake channel', intake, true)}
+      ${pieCard('Brand allocation', brands, false)}
+      <div class="span-2">${vbarCard('Stages', stages)}</div>
+      <div class="span-2">${hbarCard('Service centre counts', centres)}</div>
+    </div>
+    <div class="card analytics-embed">
+      <iframe class="analytics-frame" src="${CLAPPIA_ANALYTICS_EMBED}" title="Clappia analytics"></iframe>
     </div>`;
 }
 
@@ -1737,7 +1905,10 @@ async function handleAction(e){
   const el = e.currentTarget;
   const action = el.dataset.action;
   const id = el.dataset.id;
-  if(action==='nav'){ activePage = el.dataset.page; activeTicketId=null; saveState(); render(); return; }
+  if(action==='nav'){
+    if(el.dataset.href){ window.open(el.dataset.href, '_blank', 'noopener'); return; }
+    activePage = el.dataset.page; activeTicketId=null; saveState(); render(); return;
+  }
   if(action==='refresh-tickets'){
     if(ticketsRefreshing) return;
     ticketsRefreshing = true;
@@ -1752,7 +1923,14 @@ async function handleAction(e){
   if(action==='open-new-ticket'){ openNewTicketModal(); return; }
   if(action==='close-modal'){ closeNewTicketModal(); return; }
   if(action==='open-ticket'){ activeTicketId = id; render(); return; }
-  if(action==='crm-subtab'){ crmSubtab = el.dataset.sub; render(); return; }
+  if(action==='crm-page'){
+    if(el.disabled) return;
+    const all = state.tickets.length;
+    const pages = Math.max(1, Math.ceil(all / CRM_PAGE_SIZE));
+    if(el.dataset.dir==='prev') crmPage = Math.max(1, crmPage - 1);
+    else crmPage = Math.min(pages, crmPage + 1);
+    render(); return;
+  }
   if(action==='logs-subtab'){ logsSubtab = el.dataset.sub; render(); return; }
   if(action==='sap-mode'){ sapMode = el.dataset.mode; render(); return; }
   if(action==='toggle-theme'){ theme = theme==='dark' ? 'light' : 'dark'; saveState(); render(); return; }
@@ -1760,7 +1938,7 @@ async function handleAction(e){
   if(action==='toggle-collapse'){ sidebarCollapsed = !sidebarCollapsed; saveState(); render(); return; }
   if(action==='reset-demo'){
     if(confirm('Reset all demo data? This clears tickets you have created.')){
-      await seedDemoData(); saveState(); activeTicketId=null; activePage='dashboard'; currentRole='all'; render(); showToast('Demo data reset');
+      await seedDemoData(); saveState(); activeTicketId=null; activePage='crm'; crmPage=1; currentRole='all'; render(); showToast('Demo data reset');
     } return;
   }
   if(action==='convert-enquiry'){
@@ -1834,7 +2012,7 @@ async function handleAction(e){
     const t = findTicket(id); approveClosureStep(t, el.dataset.step); saveState(); render(); return;
   }
 }
-function handleFormAction(e){
+async function handleFormAction(e){
   e.preventDefault();
   const form = e.currentTarget; const action = form.dataset.action; const id = form.dataset.id;
   const fd = new FormData(form); const t = findTicket(id);
@@ -1847,6 +2025,7 @@ function handleFormAction(e){
   } else if(action==='book-appt'){
     if(!canAct('branch')) return;
     t.appointment = fd.get('appt'); addLog(t, 'Appointment booked for ' + fd.get('appt'));
+    if(!t.visitOutcome) await clappiaSetFieldDiagnosisStatus(t);
   } else if(action==='advance-closure'){ advanceClosure(t, fd);
   } else if(action==='submit-docs-replacement'){
     if(!canAct('asc')) return; submitReplacementDocs(t, fd);
