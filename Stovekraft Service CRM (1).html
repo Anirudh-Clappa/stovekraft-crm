@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stovekraft Service CRM</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root{
+    --bg:#F5F4F2; --panel:#FFFFFF; --border:#E3DED7; --ink:#241C19; --ink-soft:#6E635B; --ink-faint:#A6998E;
+    --red:#B91C2E; --red-soft:#FBE9EA; --green:#2C7A4B; --green-soft:#E7F4EB; --amber:#B4761F; --amber-soft:#FBF0DF;
+    --blue:#2C5C8F; --blue-soft:#E8EFF7; --grey-soft:#EFEBE4; --sap:#0F62B0; --sap-soft:#E7F0FA;
+    --sidebar:#1C1512; --radius:9px;
+    box-sizing:border-box;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#17110F; --panel:#211917; --border:#392B25; --ink:#F1E8E3; --ink-soft:#B9A89E; --ink-faint:#7C6C63;
+      --red:#E0576A; --red-soft:#341A1D; --green:#5FBE87; --green-soft:#152A1C; --amber:#D79A45; --amber-soft:#2A2113;
+      --blue:#7FA8D9; --blue-soft:#152030; --grey-soft:#291F1B; --sap:#6FA8DC; --sap-soft:#132234;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#17110F; --panel:#211917; --border:#392B25; --ink:#F1E8E3; --ink-soft:#B9A89E; --ink-faint:#7C6C63;
+    --red:#E0576A; --red-soft:#341A1D; --green:#5FBE87; --green-soft:#152A1C; --amber:#D79A45; --amber-soft:#2A2113;
+    --blue:#7FA8D9; --blue-soft:#152030; --grey-soft:#291F1B; --sap:#6FA8DC; --sap-soft:#132234;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;display:flex;min-height:100%;overflow-x:hidden;}
+  ::-webkit-scrollbar{width:9px;height:9px;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+
+  .sidebar{width:236px;flex:0 0 236px;background:var(--sidebar);color:#E9DAD3;display:flex;flex-direction:column;height:100vh;height:100dvh;position:sticky;top:0;padding-top:env(safe-area-inset-top,0px);}
+  .brand{padding:18px 18px 14px;border-bottom:3px solid var(--red);}
+  .brand b{color:#fff;font-size:16px;}
+  .brand div{font-size:11px;color:#B99A8C;margin-top:3px;}
+  .nav{padding:12px 8px;flex:1;overflow-y:auto;}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:#D9C7BE;margin-bottom:2px;}
+  .nav-item:hover{background:#2A1F1A;}
+  .nav-item.active{background:var(--red);color:#fff;}
+  .newticket-btn{margin:6px 8px 14px;padding:11px;border-radius:8px;background:var(--red);color:#fff;text-align:center;font-weight:700;font-size:13px;cursor:pointer;border:none;width:calc(100% - 16px);}
+  .sidebar-foot{padding:12px 18px;border-top:1px solid #33261F;font-size:11px;color:#8C776C;display:flex;justify-content:space-between;align-items:center;}
+  .reset-link{color:#B99A8C;cursor:pointer;text-decoration:underline;}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 26px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:5;gap:12px;flex-wrap:wrap;}
+  .topbar h1{margin:0;font-size:17px;font-weight:800;}
+  .topbar .sub{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+  .content{padding:22px 26px 60px;}
+  .role-switch{display:flex;align-items:center;gap:7px;}
+  .role-switch label{font-size:11px;color:var(--ink-faint);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .role-switch select{font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 10px;border-radius:7px;border:1.5px solid var(--red);background:var(--panel);color:var(--red);}
+
+  .btn{border:1px solid var(--border);background:var(--panel);color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer;}
+  .btn:hover{border-color:var(--red);}
+  .btn-primary{background:var(--red);border-color:var(--red);color:#fff;}
+  .btn-primary:hover{opacity:.9;}
+  .btn-sm{padding:6px 11px;font-size:12px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+  @media (max-width:1000px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:560px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;}
+  .kpi b{display:block;font-size:19px;}
+  .kpi span{font-size:10.5px;color:var(--ink-faint);font-weight:600;}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;}
+  .card h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+  table.list{width:100%;border-collapse:collapse;font-size:13px;}
+  table.list th{text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--ink-faint);padding:0 8px 9px;border-bottom:1px solid var(--border);font-weight:700;}
+  table.list td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  table.list tr:last-child td{border-bottom:none;}
+  table.list tr.clickable{cursor:pointer;}
+  table.list tr.clickable:hover{background:var(--grey-soft);}
+
+  .tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;white-space:nowrap;text-transform:none;letter-spacing:0;}
+  .tag.green{background:var(--green-soft);color:var(--green);}
+  .tag.amber{background:var(--amber-soft);color:var(--amber);}
+  .tag.grey{background:var(--grey-soft);color:var(--ink-faint);}
+  .tag.red{background:var(--red-soft);color:var(--red);}
+  .tag.blue{background:var(--blue-soft);color:var(--blue);}
+  .tag.sap{background:var(--sap-soft);color:var(--sap);}
+
+  .back-link{font-size:12.5px;color:var(--ink-soft);cursor:pointer;font-weight:600;margin-bottom:12px;display:inline-block;}
+  .back-link:hover{color:var(--red);}
+  .detail-title{font-size:19px;font-weight:800;}
+  .detail-sub{font-size:12.5px;color:var(--ink-faint);margin-top:2px;}
+
+  .meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media (max-width:760px){.meta-grid{grid-template-columns:repeat(2,1fr);}}
+  .meta-item .l{font-size:10.5px;color:var(--ink-faint);font-weight:600;}
+  .meta-item .v{font-size:13px;font-weight:600;margin-top:2px;}
+
+  .macro-stepper{display:flex;gap:0;margin-bottom:18px;flex-wrap:wrap;}
+  .macro-step{flex:1;min-width:110px;text-align:center;padding:9px 6px;font-size:10.5px;font-weight:700;border-bottom:3px solid var(--border);color:var(--ink-faint);}
+  .macro-step.done{border-color:var(--green);color:var(--green);}
+  .macro-step.current{border-color:var(--red);color:var(--red);}
+
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:600px){.field-grid{grid-template-columns:1fr;}}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11.5px;font-weight:600;color:var(--ink-soft);}
+  .field select,.field input,.field textarea{font-family:inherit;font-size:13px;padding:8px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--ink);width:100%;}
+  .field textarea{resize:vertical;min-height:56px;}
+  .required-star{color:var(--red);}
+
+  .outcome-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .outcome-btn{padding:9px 13px;border-radius:7px;border:1px solid var(--border);background:var(--panel);font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink);}
+  .outcome-btn:hover{border-color:var(--red);}
+  .outcome-btn.replacement{border-color:var(--amber);color:var(--amber);}
+  .outcome-btn.cancel{border-color:var(--ink-faint);color:var(--ink-faint);}
+
+  .stepflow{display:flex;flex-direction:column;}
+  .sf-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--border);align-items:flex-start;}
+  .sf-row:last-child{border-bottom:none;}
+  .sf-dot{width:20px;height:20px;border-radius:50%;background:var(--grey-soft);border:2px solid var(--border);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--ink-faint);margin-top:1px;}
+  .sf-row.done .sf-dot{background:var(--green);border-color:var(--green);color:#fff;}
+  .sf-row.current .sf-dot{background:var(--red);border-color:var(--red);color:#fff;}
+  .sf-body{flex:1;min-width:0;}
+  .sf-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .sf-row.pending .sf-title{color:var(--ink-faint);font-weight:600;}
+  .sf-meta{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+  .sf-action{margin-top:8px;}
+
+  .subnote{background:var(--amber-soft);color:var(--amber);border-radius:7px;padding:9px 11px;font-size:12px;font-weight:600;margin-bottom:12px;}
+  .sap-note{background:var(--sap-soft);color:var(--sap);border-radius:7px;padding:9px 11px;font-size:12px;font-weight:600;margin-top:8px;display:flex;gap:7px;align-items:flex-start;}
+  .sap-badge{background:var(--sap);color:#fff;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:4px;flex:0 0 auto;margin-top:1px;}
+  .waiting-block{border:1.5px dashed var(--border);border-radius:7px;padding:9px 11px;font-size:12px;color:var(--ink-faint);font-weight:600;margin-top:8px;}
+
+  .log-list{display:flex;flex-direction:column;gap:0;}
+  .log-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+  .log-item:last-child{border-bottom:none;}
+  .log-ts{color:var(--ink-faint);font-size:11px;margin-right:8px;}
+
+  .pin-box{position:relative;width:100%;max-width:280px;height:140px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;cursor:crosshair;overflow:hidden;}
+  .pin-box svg{width:100%;height:100%;}
+  .pin-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid #fff;box-shadow:0 0 0 1px var(--red);transform:translate(-50%,-50%);pointer-events:none;}
+  .pin-dot.tech{background:var(--blue);box-shadow:0 0 0 1px var(--blue);}
+  .pin-hint{font-size:11px;color:var(--ink-faint);margin-top:5px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,14,12,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:var(--panel);border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:24px 26px;}
+  .modal h2{margin:0 0 4px;font-size:18px;font-weight:800;}
+  .modal .sub{font-size:12.5px;color:var(--ink-faint);margin-bottom:16px;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 17px;border-radius:8px;font-size:12.5px;font-weight:600;transition:all .25s ease;pointer-events:none;z-index:200;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .empty{text-align:center;padding:40px 20px;color:var(--ink-faint);font-size:13px;}
+
+  @media (max-width:860px){
+    body{flex-direction:column;}
+    .sidebar{width:100%;flex:none;height:auto;position:relative;}
+    .nav{display:flex;overflow-x:auto;gap:6px;}
+    .nav-item{flex:0 0 auto;}
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand"><b>SERVICE HUB</b><div>After-Sales CRM · Stovekraft</div></div>
+  <button class="newticket-btn" data-action="open-new-ticket">+ New Ticket</button>
+  <nav class="nav" id="nav"></nav>
+  <div class="sidebar-foot"><span>Demo data</span><span class="reset-link" data-action="reset-demo">Reset</span></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><h1 id="pageTitle">Dashboard</h1><div class="sub" id="pageSub"></div></div>
+    <div class="role-switch">
+      <label>Viewing as</label>
+      <select id="roleSwitcher"></select>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</main>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================= DATA / STATE ========================= */
+const STORAGE_KEY = 'stovekraft_crm_demo_v2';
+
+const PRODUCTS = ['Induction Cooktop IC-2100','Mixer Grinder MG-750','Gas Stove GS-3B','Pressure Cooker PC-5L','Air Fryer AF-4L'];
+const PURCHASE_CHANNELS = ['Retail Store','E-commerce','Dealer Direct','Distributor'];
+const TECHNICIANS = ['Suresh M.','Anitha R.','Faizal K.','Ramesh P.','Divya S.'];
+const BRANDS = ['Pigeon','Gilma'];
+const INTAKE_CHANNELS = ['Call Centre','WhatsApp Chatbot','Web Link / QR Code','ASC CRM Portal'];
+
+const ROLES = { technician:'Technician', asc:'ASC / Service Centre', branch:'Branch', ho:'Head Office', logistics:'Logistics' };
+const ROLE_COLOR = { technician:'blue', asc:'amber', branch:'grey', ho:'red', logistics:'green' };
+let currentRole = 'all';
+
+const PINCODE_MAP = {
+  '560073': { mapped:true, centre:'Bengaluru North Service Centre' },
+  '560001': { mapped:true, centre:'Bengaluru Central Service Centre' },
+  '583201': { mapped:false, centre:null },
+  '590001': { mapped:false, centre:null },
+};
+const DEFAULT_CENTRE = 'Bengaluru Central Service Centre';
+
+const REPLACEMENT_STEPS = [
+  { key:'initiated', label:'Replacement initiated', auto:true },
+  { key:'docs', label:'Service centre uploads supporting documents' },
+  { key:'branch', label:'Branch checks and approves' },
+  { key:'ho', label:'Head Office checks and approves' },
+  { key:'invoice_pending', label:'Invoice pending' },
+  { key:'shipment_pending', label:'Shipment pending' },
+  { key:'shipment_done', label:'Shipment sent' },
+  { key:'received', label:'Service centre receives replacement unit' },
+  { key:'closed', label:'Call closed — defective unit logged for return' },
+];
+const REPLACEMENT_ROLES = { docs:'asc', branch:'branch', ho:'ho', invoice_pending:'logistics', shipment_pending:'logistics', shipment_done:'logistics', received:'asc', closed:'asc' };
+const REPLACEMENT_APPROVALS = new Set(['branch','ho']);
+
+const CLOSURE_ROLES = { happy_code:'technician', duplicate_check:'system', ho_confirm:'ho', unbilled:'system', claim_adjustment:'ho', invoice_unlocked:'branch', invoice_submitted:'asc', final_approval:'ho' };
+const CLOSURE_APPROVALS = new Set(['ho_confirm','final_approval']);
+
+const RETURN_STEPS = [
+  { key:'rpo', label:'Reverse pickup coordinated for defective unit' },
+  { key:'credit_note', label:'Credit note issued' },
+];
+const RETURN_ROLES = { rpo:'logistics', credit_note:'ho' };
+
+const NAV = [
+  { key:'dashboard', label:'Dashboard' },
+  { key:'coverage', label:'Pincode Coverage' },
+  { key:'integration', label:'SAP Integration Log' },
+];
+
+let state = { tickets: [], counter: 1000, integrationLog: [] };
+let activePage = 'dashboard';
+let activeTicketId = null;
+let pendingPin = null; // for new-ticket modal
+
+/* ========================= ROLE HELPERS ========================= */
+function canAct(role){
+  if(!role || role==='system') return true;
+  return currentRole==='all' || currentRole===role;
+}
+function roleBadge(role){
+  if(!role) return '';
+  if(role==='system') return '<span class="tag grey">System — automatic</span>';
+  return '<span class="tag '+(ROLE_COLOR[role]||'grey')+'">'+(ROLES[role]||role)+'</span>';
+}
+function waitingBlock(role){
+  return '<div class="waiting-block">Waiting on '+(ROLES[role]||role)+' to act on this step.</div>';
+}
+
+/* ========================= PERSISTENCE ========================= */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ state = JSON.parse(raw); return; }
+  }catch(e){ /* storage unavailable, fall through to seed */ }
+  seedDemoData();
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
+}
+
+function seedDemoData(){
+  state = { tickets: [], counter: 1000, integrationLog: [] };
+
+  // Ticket 1: fully closed & paid out
+  const t1 = makeTicket({
+    ticketType:'registered', customerType:'consumer', customerName:'Suresh Babu', phone:'98450 11223',
+    intakeChannel:'WhatsApp Chatbot', brand:'Pigeon',
+    product:'Mixer Grinder MG-750', model:'MG-750', serial:'SK-MG750-88231', pincode:'560073',
+    purchaseChannel:'Retail Store', complaint:'Motor not starting', locationPin:{x:60,y:50}
+  });
+  allocateAuto(t1);
+  t1.technician = 'Anitha R.'; addLog(t1, 'Technician assigned: Anitha R.');
+  t1.appointment = '2026-09-20T11:00'; addLog(t1, 'Appointment booked for 20 Sep, 11:00 AM');
+  t1.techCheckIn = {x:62,y:52}; addLog(t1, 'Technician checked in on-site');
+  setOutcome(t1, 'closed_with_part', true);
+  t1.closure.happyCode = 'HC-88231'; t1.closure.deductionApplied = true; addLog(t1,'Happy Code captured: HC-88231 (95% deduction applied)');
+  runDuplicateCheck(t1);
+  t1.closure.hoConfirmed = true; addLog(t1,'Head Office confirmed the closed call');
+  t1.closure.unbilled = true; addLog(t1,'Pushed to Unbilled Transaction queue');
+  t1.closure.claimAdjustment = {amount:0, reason:'No adjustment'}; addLog(t1,'Claim adjustment recorded: none');
+  t1.closure.invoiceUnlocked = true; addLog(t1,'Branch unlocked invoice entry for service centre');
+  t1.closure.invoiceNumber='INV-77410'; t1.closure.invoiceDate='2026-09-21'; t1.closure.invoiceFile='INV-77410.pdf';
+  addLog(t1,'Invoice INV-77410 submitted by service centre — attached: INV-77410.pdf');
+  simulateSap(t1, 'write', 'Billing Document', 'API_BILLING_DOCUMENT_SRV', {InvoiceNo:'INV-77410', Amount:1480});
+  t1.closure.finalApproved = true; addLog(t1,'Head Office gave final approval — ticket closed');
+  t1.closure.payoutIncluded = true;
+  state.tickets.push(t1);
+
+  // Ticket 2: mid-way through replacement flow
+  const t2 = makeTicket({
+    ticketType:'registered', customerType:'dealer', customerName:'New Arya Traders', phone:'99001 44556',
+    intakeChannel:'ASC CRM Portal', brand:'Pigeon', priority:true,
+    product:'Induction Cooktop IC-2100', model:'IC-2100', serial:'SK-IC2100-90410', pincode:'560073',
+    purchaseChannel:'Dealer Direct', complaint:'Display panel cracked, unit not powering on', locationPin:{x:140,y:70}
+  });
+  simulateSap(t2, 'read', 'Business Partner', 'API_BUSINESS_PARTNER', {CustomerType:'Dealer'});
+  allocateAuto(t2);
+  simulateSap(t2, 'read', 'Sales Order', 'API_SALES_ORDER_SRV', {Note:'Linked to original purchase'});
+  t2.technician = 'Faizal K.'; addLog(t2,'Technician assigned: Faizal K.');
+  t2.appointment = '2026-09-24T15:00'; addLog(t2,'Appointment booked for 24 Sep, 3:00 PM');
+  t2.techCheckIn = {x:143,y:74}; addLog(t2,'Technician checked in on-site');
+  setOutcome(t2, 'replacement', true);
+  simulateSap(t2, 'read', 'Product Master', 'API_PRODUCT_SRV', {Material:'IC-2100'});
+  advanceReplacement(t2); // docs
+  t2.replacement.docsFile = 'display_panel_damage.pdf';
+  advanceReplacement(t2); // branch approved
+  advanceReplacement(t2); // ho approved
+  state.tickets.push(t2);
+
+  // Ticket 3: brand new, unmapped pincode, awaiting branch allocation
+  const t3 = makeTicket({
+    ticketType:'registered', customerType:'consumer', customerName:'Anitha Kumar', phone:'97400 22110',
+    intakeChannel:'Web Link / QR Code', brand:'Gilma',
+    product:'Induction Cooktop IC-2100', model:'IC-2100', serial:'SK-IC2100-77105', pincode:'583201',
+    purchaseChannel:'E-commerce', complaint:'Cooktop overheating and auto-shutting off', locationPin:{x:200,y:90}
+  });
+  allocateAuto(t3);
+  state.tickets.push(t3);
+}
+
+function makeTicket(f){
+  state.counter += 1;
+  return {
+    id: 'TCK-' + state.counter,
+    ticketType: f.ticketType, // 'registered' | 'enquiry'
+    customerType: f.customerType, // consumer/dealer/distributor
+    customerName: f.customerName, phone: f.phone,
+    product: f.product, model: f.model, serial: f.serial, brand: f.brand || 'Pigeon',
+    intakeChannel: f.intakeChannel || 'Call Centre',
+    priority: !!f.priority,
+    pincode: f.pincode, purchaseChannel: f.purchaseChannel, complaint: f.complaint,
+    locationPin: f.locationPin || null,
+    createdAt: nowStr(), createdAtISO: new Date().toISOString(),
+    mapped: null, serviceCentre: null, technician: null, appointment: null, techCheckIn: null,
+    visitOutcome: null, poRaised: false, visitEvidence: null,
+    replacement: null,
+    enquiryClosed: false, suggestedCentre: null, convertedTicketId: null, linkedFromEnquiry: f.linkedFromEnquiry || null,
+    closure: null,
+    log: [],
+  };
+}
+
+function nowStr(){
+  const d = new Date();
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) + ' · ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+function addLog(ticket, text, sap){
+  ticket.log.push({ ts: nowStr(), text, sap: sap || null });
+}
+function simulateSap(ticket, method, object, endpoint, payload){
+  const entry = { ts: nowStr(), ticketId: ticket.id, method, object, endpoint, payload: JSON.stringify(payload) };
+  state.integrationLog.push(entry);
+  addLog(ticket, (method==='write'?'SAP write — ':'SAP read — ') + object, entry);
+}
+
+/* ========================= BUSINESS LOGIC ========================= */
+function lookupPincode(pincode){
+  return PINCODE_MAP[pincode] || { mapped:false, centre:null };
+}
+function allocateAuto(ticket){
+  const r = lookupPincode(ticket.pincode);
+  ticket.mapped = r.mapped;
+  if(r.mapped){
+    ticket.serviceCentre = r.centre;
+    addLog(ticket, 'Pincode ' + ticket.pincode + ' is covered — auto-allocated to ' + r.centre);
+  } else {
+    addLog(ticket, 'Pincode ' + ticket.pincode + ' is not covered — sent to branch for manual allocation');
+  }
+}
+function setOutcome(ticket, outcome, silent, evidenceFile){
+  ticket.visitOutcome = outcome;
+  if(evidenceFile) ticket.visitEvidence = evidenceFile;
+  if(!silent) addLog(ticket, 'Visit outcome recorded: ' + outcomeLabel(outcome) + (evidenceFile? ' — evidence attached: '+evidenceFile : ''));
+  if(outcome === 'part_pending'){
+    ticket.poRaised = true;
+    if(!silent) simulateSap(ticket, 'write', 'Purchase Order', 'API_PURCHASEORDER_PROCESS_SRV', {Material:ticket.model, Qty:1});
+  }
+  if(outcome === 'replacement'){
+    ticket.replacement = { completed:['initiated'] };
+    if(!silent) addLog(ticket, 'Replacement sub-flow started');
+  }
+  if(outcome === 'closed_no_part' || outcome === 'closed_with_part'){
+    initClosure(ticket, false);
+  }
+}
+function outcomeLabel(o){
+  return { closed_no_part:'Closed without a part', closed_with_part:'Closed with a part', part_pending:'Part pending — Purchase Order raised',
+    cancelled:'Cancelled', revisit:'Revisit needed', replacement:'Replacement needed' }[o] || o;
+}
+function advanceReplacement(ticket){
+  const done = ticket.replacement.completed;
+  const nextIdx = done.length;
+  if(nextIdx >= REPLACEMENT_STEPS.length) return;
+  const step = REPLACEMENT_STEPS[nextIdx];
+  done.push(step.key);
+  addLog(ticket, step.label);
+  if(step.key === 'closed'){
+    initClosure(ticket, true);
+  }
+}
+function initClosure(ticket, isReplacement){
+  ticket.closure = {
+    isReplacementCall: !!isReplacement,
+    closedAt: nowStr(), closedAtISO: new Date().toISOString(),
+    happyCode:null, deductionApplied:null,
+    duplicateSerialFlag:null,
+    hoConfirmed:false, unbilled:false,
+    claimAdjustment:null, invoiceUnlocked:false, invoiceNumber:null, invoiceDate:null, invoiceFile:null,
+    finalApproved:false,
+    defectiveReturn: isReplacement ? { rpoRaised:false, creditNoteIssued:false } : null,
+    payoutIncluded:false,
+  };
+  addLog(ticket, 'Call closed — moved into closure & claims');
+}
+function runDuplicateCheck(ticket){
+  const cutoff = Date.now() - 30*24*60*60*1000;
+  const dup = state.tickets.some(o => {
+    if(o.id === ticket.id || o.serial !== ticket.serial || !o.closure || !o.closure.closedAtISO) return false;
+    return new Date(o.closure.closedAtISO).getTime() >= cutoff;
+  });
+  ticket.closure.duplicateSerialFlag = dup;
+  addLog(ticket, dup ? 'Duplicate serial number found within 30 days — flagged for review' : 'No duplicate serial number found in the last 30 days');
+}
+function triggerAutoClosure(id){
+  const t = state.tickets.find(x=>x.id===id);
+  if(!t || !t.closure) return;
+  const c = t.closure;
+  let changed = false;
+  if(c.isReplacementCall && c.deductionApplied===null){ c.deductionApplied=false; addLog(t,'Replacement call — no Happy Code deduction applies'); changed=true; }
+  if(c.deductionApplied!==null && c.duplicateSerialFlag===null){ runDuplicateCheck(t); changed=true; }
+  if(c.hoConfirmed && !c.unbilled){ c.unbilled = true; addLog(t,'Pushed to Unbilled Transaction queue'); changed=true; }
+  if(changed){ saveState(); render(); }
+}
+function advanceClosure(ticket, formData){
+  const c = ticket.closure;
+  if(c.deductionApplied === null){
+    c.happyCode = 'HC-' + Math.floor(10000+Math.random()*89999);
+    c.deductionApplied = true;
+    addLog(ticket, 'Happy Code captured: ' + c.happyCode + ' (95% deduction applied)');
+    return;
+  }
+  if(!c.claimAdjustment){
+    const amt = formData ? Number(formData.get('amount')||0) : 0;
+    const reason = formData ? (formData.get('reason')||'No adjustment') : 'No adjustment';
+    c.claimAdjustment = { amount: amt, reason };
+    addLog(ticket, 'Claim adjustment recorded: ' + (amt? (amt>0?'+':'') + amt + ' — ' + reason : 'none'));
+    return;
+  }
+  if(!c.invoiceUnlocked){ c.invoiceUnlocked = true; addLog(ticket, 'Branch unlocked invoice entry for service centre'); return; }
+  if(!c.invoiceNumber){
+    const num = formData ? formData.get('invoiceNumber') : null;
+    const date = formData ? formData.get('invoiceDate') : null;
+    if(!num || !date) return;
+    const file = formData ? formData.get('invoiceFile') : null;
+    c.invoiceNumber = num; c.invoiceDate = date;
+    if(file && file.name) c.invoiceFile = file.name;
+    addLog(ticket, 'Invoice ' + num + ' submitted by service centre' + (c.invoiceFile ? (' — attached: '+c.invoiceFile) : ''));
+    simulateSap(ticket, 'write', 'Billing Document', 'API_BILLING_DOCUMENT_SRV', {InvoiceNo:num, Date:date});
+    return;
+  }
+}
+function approveClosureStep(ticket, step){
+  const c = ticket.closure;
+  if(step==='ho_confirm'){ c.hoConfirmed = true; addLog(ticket, 'Head Office confirmed the closed call'); }
+  if(step==='final_approval'){
+    c.finalApproved = true;
+    addLog(ticket, 'Head Office gave final approval — ticket closed');
+    if(!c.defectiveReturn) c.payoutIncluded = true;
+  }
+}
+function rejectClosureStep(ticket, step, reason){
+  const label = step==='ho_confirm' ? 'Head Office confirms' : 'Head Office final approval';
+  addLog(ticket, label + ' — rejected: ' + reason);
+}
+function submitReplacementDocs(ticket, formData){
+  const file = formData.get('file');
+  const notes = formData.get('notes');
+  if(file && file.name) ticket.replacement.docsFile = file.name;
+  if(notes) ticket.replacement.docsNotes = notes;
+  advanceReplacement(ticket);
+  if(file && file.name) addLog(ticket, 'Document attached: ' + file.name);
+}
+function approveReplacementStep(ticket){
+  advanceReplacement(ticket);
+}
+function rejectReplacementStep(ticket, reason){
+  const done = ticket.replacement.completed;
+  const nextIdx = done.length;
+  const step = REPLACEMENT_STEPS[nextIdx];
+  addLog(ticket, (step? step.label : 'Replacement step') + ' — rejected: ' + reason);
+}
+function advanceReturn(ticket){
+  const r = ticket.closure.defectiveReturn;
+  if(!r.rpoRaised){ r.rpoRaised = true; addLog(ticket, 'Reverse pickup coordinated for defective unit'); return; }
+  if(!r.creditNoteIssued){
+    r.creditNoteIssued = true;
+    addLog(ticket, 'Credit note issued for returned defective unit');
+    simulateSap(ticket, 'write', 'Credit Memo Request', 'API_CREDIT_MEMO_REQUEST_SRV', {Reason:'Defective unit return'});
+    ticket.closure.payoutIncluded = true;
+    return;
+  }
+}
+function closureFullyDone(t){
+  if(!t.closure) return false;
+  if(!t.closure.finalApproved) return false;
+  if(t.closure.defectiveReturn && !t.closure.defectiveReturn.creditNoteIssued) return false;
+  return true;
+}
+
+/* ========================= RENDER: SHELL ========================= */
+function buildNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  NAV.forEach(n=>{
+    const el = document.createElement('div');
+    el.className = 'nav-item' + (activePage===n.key && !activeTicketId ? ' active':'');
+    el.textContent = n.label;
+    el.dataset.action = 'nav'; el.dataset.page = n.key;
+    nav.appendChild(el);
+  });
+}
+function buildRoleSwitcher(){
+  const sel = document.getElementById('roleSwitcher');
+  if(sel.options.length) return; // build once
+  const opts = [['all','All roles (view everything)']].concat(Object.keys(ROLES).map(k=>[k, ROLES[k]]));
+  opts.forEach(([val,label])=>{
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    sel.appendChild(o);
+  });
+  sel.onchange = ()=>{ currentRole = sel.value; render(); };
+}
+function render(){
+  buildNav();
+  buildRoleSwitcher();
+  document.getElementById('roleSwitcher').value = currentRole;
+  const content = document.getElementById('content');
+  const titleEl = document.getElementById('pageTitle');
+  const subEl = document.getElementById('pageSub');
+  content.innerHTML = '';
+
+  if(activeTicketId){
+    const t = state.tickets.find(x=>x.id===activeTicketId);
+    if(!t){ activeTicketId = null; render(); return; }
+    titleEl.textContent = t.id;
+    subEl.textContent = t.customerName + ' · ' + t.product;
+    content.innerHTML = renderTicketDetail(t);
+    bindEvents(); return;
+  }
+  if(activePage==='dashboard'){ titleEl.textContent='Dashboard'; subEl.textContent='All service tickets'; content.innerHTML = renderDashboard(); }
+  else if(activePage==='coverage'){ titleEl.textContent='Pincode Coverage'; subEl.textContent='Which pincodes are mapped to which service centre'; content.innerHTML = renderCoverage(); }
+  else if(activePage==='integration'){ titleEl.textContent='SAP Integration Log'; subEl.textContent='Every simulated call made to SAP across all tickets'; content.innerHTML = renderIntegrationLog(); }
+  bindEvents();
+}
+
+/* ========================= RENDER: DASHBOARD ========================= */
+function stageOf(t){
+  if(t.ticketType==='enquiry' && !t.convertedTicketId) return 'enquiry_closed';
+  if(!t.serviceCentre) return 'awaiting_allocation';
+  if(!t.technician) return 'awaiting_technician';
+  if(!t.appointment) return 'awaiting_appointment';
+  if(!t.visitOutcome) return 'awaiting_visit';
+  if(t.visitOutcome==='cancelled') return 'cancelled';
+  if(t.visitOutcome==='part_pending' && !t.appointment2) return 'part_pending';
+  if(t.visitOutcome==='revisit' ) return 'revisit';
+  if(t.replacement && !t.closure) return 'replacement_flow';
+  if(t.closure && !closureFullyDone(t)) return 'closure_flow';
+  if(t.closure && closureFullyDone(t)) return 'closed_paid';
+  return 'in_progress';
+}
+function stageTag(t){
+  const s = stageOf(t);
+  const map = {
+    enquiry_closed: ['grey','Enquiry closed'], awaiting_allocation:['amber','Awaiting allocation'], awaiting_technician:['blue','Awaiting technician'],
+    awaiting_appointment:['blue','Awaiting appointment'], awaiting_visit:['blue','Awaiting visit'], cancelled:['grey','Cancelled'],
+    part_pending:['amber','Part pending'], revisit:['amber','Revisit needed'], replacement_flow:['amber','Replacement in progress'],
+    closure_flow:['blue','In closure & claims'], closed_paid:['green','Closed & paid out'], in_progress:['blue','In progress'],
+  };
+  const m = map[s] || ['grey', s];
+  return '<span class="tag '+m[0]+'">'+m[1]+'</span>';
+}
+
+function renderDashboard(){
+  const tickets = state.tickets;
+  const counts = {
+    total: tickets.length,
+    awaiting: tickets.filter(t=>['awaiting_allocation','awaiting_technician','awaiting_appointment','awaiting_visit'].includes(stageOf(t))).length,
+    replacement: tickets.filter(t=>stageOf(t)==='replacement_flow').length,
+    closure: tickets.filter(t=>stageOf(t)==='closure_flow').length,
+    closed: tickets.filter(t=>stageOf(t)==='closed_paid').length,
+    unmapped: tickets.filter(t=>t.mapped===false && !t.serviceCentre).length,
+  };
+  const rows = tickets.slice().reverse().map(t => `
+    <tr class="clickable" data-action="open-ticket" data-id="${t.id}">
+      <td><strong>${t.id}</strong> ${t.priority?'<span class="tag red">Priority</span>':''}<div style="font-size:10.5px;color:var(--ink-faint);">${t.ticketType==='registered'?'Registered Complaint':'General Enquiry'} · ${t.intakeChannel} · ${t.createdAt}</div></td>
+      <td>${t.customerName}<div style="font-size:10.5px;color:var(--ink-faint);">${t.customerType}</div></td>
+      <td>${t.product}<div style="font-size:10.5px;color:var(--ink-faint);">${t.brand}</div></td>
+      <td>${t.pincode} ${t.mapped===true?'<span class="tag green">Mapped</span>':t.mapped===false?'<span class="tag amber">Unmapped</span>':''}</td>
+      <td>${stageTag(t)}</td>
+    </tr>`).join('');
+  return `
+    <div class="kpi-strip">
+      <div class="kpi"><b>${counts.total}</b><span>All tickets</span></div>
+      <div class="kpi"><b>${counts.awaiting}</b><span>Awaiting allocation/visit</span></div>
+      <div class="kpi"><b>${counts.unmapped}</b><span>Pincode unmapped</span></div>
+      <div class="kpi"><b>${counts.replacement}</b><span>Replacement in progress</span></div>
+      <div class="kpi"><b>${counts.closure}</b><span>In closure & claims</span></div>
+      <div class="kpi"><b>${counts.closed}</b><span>Closed & paid out</span></div>
+    </div>
+    <div class="card">
+      <h3>Service tickets</h3>
+      ${tickets.length ? `<table class="list"><tr><th>Ticket</th><th>Customer</th><th>Product</th><th>Pincode</th><th>Stage</th></tr>${rows}</table>` : '<div class="empty">No tickets yet — click "New Ticket" to create one.</div>'}
+    </div>`;
+}
+
+/* ========================= RENDER: COVERAGE ========================= */
+function renderCoverage(){
+  const rows = Object.entries(PINCODE_MAP).map(([pc,v])=>`
+    <tr><td>${pc}</td><td>${v.mapped?'<span class="tag green">Mapped</span>':'<span class="tag amber">Unmapped</span>'}</td><td>${v.centre||'—  routes to branch for manual allocation'}</td></tr>
+  `).join('');
+  return `<div class="card"><h3>Reference table used for auto-allocation</h3>
+    <table class="list"><tr><th>Pincode</th><th>Coverage</th><th>Service centre</th></tr>${rows}</table>
+    <div class="pin-hint" style="margin-top:12px;">Try creating a new ticket with pincode 560073 or 560001 (mapped, auto-allocates) vs 583201 or 590001 (unmapped, routes to branch) to see both paths.</div>
+  </div>`;
+}
+
+/* ========================= RENDER: SAP LOG ========================= */
+function renderIntegrationLog(){
+  if(!state.integrationLog.length) return '<div class="card"><div class="empty">No SAP calls fired yet. They appear here as tickets move through intake, spares, and closure.</div></div>';
+  const rows = state.integrationLog.slice().reverse().map(e=>`
+    <tr><td>${e.ts}</td><td>${e.ticketId}</td><td><span class="tag sap">${e.method==='write'?'WRITE':'READ'}</span></td><td>${e.object}</td><td style="font-family:monospace;font-size:11px;">${e.endpoint}</td></tr>
+  `).join('');
+  return `<div class="card"><h3>Simulated SAP S/4HANA calls (${state.integrationLog.length})</h3>
+    <table class="list"><tr><th>Time</th><th>Ticket</th><th>Type</th><th>SAP object</th><th>API</th></tr>${rows}</table>
+    <div class="pin-hint" style="margin-top:12px;">This mockup simulates the request/response shape of each call for demo purposes. The live build fires these against sandbox.api.sap.com using the same objects.</div>
+  </div>`;
+}
+
+/* ========================= RENDER: TICKET DETAIL ========================= */
+function renderTicketDetail(t){
+  let html = `<div class="back-link" data-action="nav" data-page="dashboard">&larr; Back to dashboard</div>`;
+
+  html += `<div class="card">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div><div class="detail-title">${t.id}</div><div class="detail-sub">${t.ticketType==='registered'?'Registered Complaint':'General Enquiry'} · Created ${t.createdAt}</div></div>
+      ${stageTag(t)}
+    </div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="l">Customer</div><div class="v">${t.customerName} (${t.customerType})</div></div>
+      <div class="meta-item"><div class="l">Phone</div><div class="v">${t.phone}</div></div>
+      <div class="meta-item"><div class="l">Intake channel</div><div class="v">${t.intakeChannel||'—'}</div></div>
+      <div class="meta-item"><div class="l">Brand</div><div class="v">${t.brand||'—'}</div></div>
+      <div class="meta-item"><div class="l">Product</div><div class="v">${t.product}</div></div>
+      <div class="meta-item"><div class="l">Serial no.</div><div class="v">${t.serial||'—'}</div></div>
+      <div class="meta-item"><div class="l">Pincode</div><div class="v">${t.pincode} ${t.mapped===true?'(mapped)':t.mapped===false?'(unmapped)':''}</div></div>
+      <div class="meta-item"><div class="l">Purchase channel</div><div class="v">${t.purchaseChannel}</div></div>
+      <div class="meta-item"><div class="l">Complaint</div><div class="v">${t.complaint}</div></div>
+      <div class="meta-item"><div class="l">Service centre</div><div class="v">${t.serviceCentre || '—'}</div></div>
+    </div>
+    ${t.priority ? '<div style="margin-top:12px;"><span class="tag red">Priority</span></div>' : ''}
+  </div>`;
+
+  if(t.ticketType==='enquiry'){
+    html += renderEnquiryFlow(t);
+    html += renderLog(t);
+    return html;
+  }
+
+  html += renderMacroStepper(t);
+
+  // Allocation (unmapped -> branch)
+  if(t.mapped===false && !t.serviceCentre){
+    const role = 'branch';
+    html += `<div class="card"><h3>Allocation ${roleBadge(role)}</h3>
+      <div class="subnote">Pincode not covered — a person at the branch allocates this manually.</div>`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else {
+      html += `<form data-action="allocate-branch" data-id="${t.id}" class="field-grid">
+        <div class="field"><label>Assign service centre</label>
+          <select name="centre" required>
+            <option value="">Select…</option>
+            <option>Bengaluru North Service Centre</option>
+            <option>Bengaluru Central Service Centre</option>
+            <option>Hubli Service Centre</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;"><button class="btn btn-primary" type="submit">Allocate</button></div>
+      </form>`;
+    }
+    html += `</div>`;
+  }
+
+  // Technician assignment
+  if(t.serviceCentre && !t.technician){
+    const role = 'branch';
+    html += `<div class="card"><h3>Assign technician ${roleBadge(role)}</h3>`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else {
+      html += `<form data-action="assign-tech" data-id="${t.id}" class="field-grid">
+        <div class="field"><label>Technician</label>
+          <select name="tech" required><option value="">Select…</option>${TECHNICIANS.map(tc=>`<option>${tc}</option>`).join('')}</select>
+        </div>
+        <div class="field" style="justify-content:flex-end;"><button class="btn btn-primary" type="submit">Assign</button></div>
+      </form>`;
+    }
+    html += `</div>`;
+  }
+
+  // Appointment
+  if(t.technician && !t.appointment){
+    const role = 'branch';
+    html += `<div class="card"><h3>Book appointment ${roleBadge(role)}</h3>`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else {
+      html += `<form data-action="book-appt" data-id="${t.id}" class="field-grid">
+        <div class="field"><label>Date &amp; time</label><input type="datetime-local" name="appt" required></div>
+        <div class="field" style="justify-content:flex-end;"><button class="btn btn-primary" type="submit">Confirm appointment</button></div>
+      </form>`;
+    }
+    html += `</div>`;
+  }
+
+  // Technician check-in
+  if(t.appointment && !t.techCheckIn && !t.visitOutcome){
+    const role = 'technician';
+    html += `<div class="card"><h3>Technician on-site check-in ${roleBadge(role)}</h3>
+      <div class="pin-hint" style="margin-bottom:8px;">Customer shared this location at intake. Simulate the technician's GPS check-in below.</div>
+      ${renderPinBox('view', t.locationPin, null)}`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else { html += `<div class="btn-row" style="margin-top:10px;"><button class="btn" data-action="tech-checkin" data-id="${t.id}">Simulate technician GPS check-in</button></div>`; }
+    html += `</div>`;
+  }
+
+  // Visit outcome
+  if(t.techCheckIn && !t.visitOutcome){
+    const role = 'technician';
+    const dist = pinDistance(t.locationPin, t.techCheckIn);
+    html += `<div class="card"><h3>Field diagnosis — record visit outcome ${roleBadge(role)}</h3>
+      ${dist>25 ? '<div class="subnote">Check-in location is some distance from the customer\'s shared location — worth a quick verification.</div>' : ''}
+      <div class="sap-note"><span class="sap-badge">SAP</span>Product spec for ${t.product} pulled live from the Material Master before the technician records the outcome.</div>`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else {
+      html += `<div class="field" style="margin-top:12px;max-width:320px;"><label>Attach photo evidence (optional)</label><input type="file" id="evidenceFile" accept="image/*"></div>
+      <div class="outcome-row" style="margin-top:10px;">
+        <button class="outcome-btn" data-action="set-outcome" data-id="${t.id}" data-outcome="closed_no_part">Closed without a part</button>
+        <button class="outcome-btn" data-action="set-outcome" data-id="${t.id}" data-outcome="closed_with_part">Closed with a part</button>
+        <button class="outcome-btn" data-action="set-outcome" data-id="${t.id}" data-outcome="part_pending">Part pending</button>
+        <button class="outcome-btn" data-action="set-outcome" data-id="${t.id}" data-outcome="revisit">Revisit needed</button>
+        <button class="outcome-btn replacement" data-action="set-outcome" data-id="${t.id}" data-outcome="replacement">Replacement needed</button>
+        <button class="outcome-btn cancel" data-action="set-outcome" data-id="${t.id}" data-outcome="cancelled">Cancelled</button>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  if(t.visitOutcome){
+    html += `<div class="card"><h3>Visit outcome</h3><span class="tag ${outcomeTagColor(t.visitOutcome)}">${outcomeLabel(t.visitOutcome)}</span>${t.visitEvidence?' <span class="tag grey">Evidence: '+t.visitEvidence+'</span>':''}`;
+    if(t.visitOutcome==='part_pending'){
+      const role='asc';
+      html += `<div class="sap-note"><span class="sap-badge">SAP</span>Purchase Order raised in SAP the instant this outcome was recorded.</div>
+      <div style="margin-top:10px;">${roleBadge(role)}</div>`;
+      if(!canAct(role)){ html += waitingBlock(role); }
+      else { html += `<div class="btn-row" style="margin-top:8px;"><button class="btn btn-primary" data-action="part-received" data-id="${t.id}">Part received — reschedule visit</button></div>`; }
+    }
+    if(t.visitOutcome==='revisit'){
+      const role='branch';
+      html += `<div style="margin-top:10px;">${roleBadge(role)}</div>`;
+      if(!canAct(role)){ html += waitingBlock(role); }
+      else { html += `<div class="btn-row" style="margin-top:8px;"><button class="btn btn-primary" data-action="schedule-revisit" data-id="${t.id}">Schedule next appointment</button></div>`; }
+    }
+    if(t.visitOutcome==='cancelled'){
+      html += `<div class="pin-hint" style="margin-top:8px;">No claim is generated for a cancelled ticket.</div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Replacement sub-flow
+  if(t.replacement){
+    html += `<div class="card"><h3>Resolution &amp; spare management — replacement sub-flow</h3>${renderReplacementFlow(t)}</div>`;
+  }
+
+  // Closure & claims
+  if(t.closure){
+    html += `<div class="card"><h3>Closure &amp; claims</h3>${renderClosureSteps(t)}</div>`;
+    if(t.closure.defectiveReturn){
+      html += `<div class="card"><h3>Returns — defective unit</h3>${renderReturnFlowSteps(t)}</div>`;
+    }
+    if(closureFullyDone(t)){
+      html += `<div class="card" style="background:var(--green-soft);border-color:var(--green);"><h3 style="color:var(--green);">Payout</h3><span class="tag green">Included in next monthly payout run</span></div>`;
+    }
+  }
+
+  html += renderLog(t);
+  return html;
+}
+
+function outcomeTagColor(o){
+  return { closed_no_part:'green', closed_with_part:'green', part_pending:'amber', cancelled:'grey', revisit:'amber', replacement:'amber' }[o]||'grey';
+}
+
+function renderMacroStepper(t){
+  const stages = ['Intake','Registration','Allocation','Field Diagnosis','Resolution','Closure'];
+  const s = stageOf(t);
+  let idx = 0;
+  if(['awaiting_technician','awaiting_appointment'].includes(s)) idx=2;
+  else if(s==='awaiting_allocation') idx=2;
+  else if(s==='awaiting_visit') idx=3;
+  else if(['part_pending','revisit','replacement_flow'].includes(s)) idx=4;
+  else if(['closure_flow','closed_paid'].includes(s)) idx=5;
+  else if(s==='cancelled') idx=3;
+  else idx=1;
+  return `<div class="macro-stepper">${stages.map((lbl,i)=>`<div class="macro-step ${i<idx?'done':i===idx?'current':''}">${lbl}</div>`).join('')}</div>`;
+}
+
+function renderEnquiryFlow(t){
+  let html = `<div class="card"><h3>Enquiry handling</h3>`;
+  if(!t.convertedTicketId){
+    html += `<div class="subnote">Enquiry auto-closed. Service centre address shared with the customer based on their purchase channel: <strong>${t.suggestedCentreCached||DEFAULT_CENTRE}</strong>.</div>`;
+    const role = 'asc';
+    html += `<div style="margin-bottom:8px;">${roleBadge(role)}</div>`;
+    if(!canAct(role)){ html += waitingBlock(role); }
+    else { html += `<div class="btn-row"><button class="btn btn-primary" data-action="convert-enquiry" data-id="${t.id}">Customer returned — convert to Workshop Ticket</button></div>`; }
+  } else {
+    html += `<div class="pin-hint">Converted to Workshop Ticket <strong>${t.convertedTicketId}</strong>.</div>
+    <div class="btn-row" style="margin-top:8px;"><button class="btn" data-action="open-ticket" data-id="${t.convertedTicketId}">Open Workshop Ticket &rarr;</button></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+/* Replacement flow render */
+function renderReplacementFlow(t){
+  const completed = t.replacement.completed;
+  const nextIdx = completed.length;
+  let html = '<div class="stepflow">';
+  REPLACEMENT_STEPS.forEach((step,i)=>{
+    const role = REPLACEMENT_ROLES[step.key];
+    const cls = i<nextIdx ? 'done' : (i===nextIdx?'current':'pending');
+    html += `<div class="sf-row ${cls}"><div class="sf-dot">${i<nextIdx?'&#10003;':i+1}</div><div class="sf-body">
+      <div class="sf-title">${step.label} ${role?roleBadge(role):''}</div>`;
+    if(i<nextIdx){
+      const extra = (step.key==='docs' && t.replacement.docsFile) ? (' — attached: '+t.replacement.docsFile) : '';
+      html += `<div class="sf-meta">Completed${extra}</div>`;
+    } else if(i===nextIdx && !step.auto){
+      if(!canAct(role)){
+        html += waitingBlock(role);
+      } else if(step.key==='docs'){
+        html += `<form data-action="submit-docs-replacement" data-id="${t.id}" style="margin-top:8px;max-width:380px;">
+          <div class="field"><label>Attach supporting document</label><input type="file" name="file"></div>
+          <div class="field" style="margin-top:6px;"><label>Notes</label><input type="text" name="notes" placeholder="e.g. photos of the fault"></div>
+          <button class="btn btn-sm btn-primary" type="submit" style="margin-top:8px;">Upload &amp; mark complete</button>
+        </form>`;
+      } else if(REPLACEMENT_APPROVALS.has(step.key)){
+        html += `<div class="sf-action">
+          <button class="btn btn-sm btn-primary" data-action="approve-replacement" data-id="${t.id}">Approve</button>
+          <form data-action="reject-replacement" data-id="${t.id}" style="margin-top:8px;max-width:380px;">
+            <textarea name="reason" placeholder="Reason to reject" required style="min-height:44px;"></textarea>
+            <button class="btn btn-sm" type="submit" style="margin-top:6px;">Reject with reason</button>
+          </form>
+        </div>`;
+      } else {
+        html += `<div class="sf-action"><button class="btn btn-sm btn-primary" data-action="advance-replacement" data-id="${t.id}">Mark complete</button></div>`;
+      }
+    }
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+/* Closure flow render */
+function renderClosureSteps(t){
+  const c = t.closure;
+  const order = [
+    {key:'happy_code', done: c.deductionApplied!==null, label: c.isReplacementCall ? 'Happy Code step skipped (replacement call)' : 'Capture Happy Code (customer satisfaction confirmation)', meta: c.happyCode?('Code: '+c.happyCode):''},
+    {key:'duplicate_check', done: c.duplicateSerialFlag!==null, label:'System checks serial number against other closed calls (last 30 days)', meta: c.duplicateSerialFlag===true?'Duplicate found — flagged':(c.duplicateSerialFlag===false?'No duplicate found':'')},
+    {key:'ho_confirm', done: c.hoConfirmed, label:'Head Office confirms'},
+    {key:'unbilled', done: c.unbilled, label:'Pushed to Unbilled Transaction queue'},
+    {key:'claim_adjustment', done: !!c.claimAdjustment, label:'Claim adjustment recorded (add / deduct)', meta: c.claimAdjustment ? (c.claimAdjustment.amount + ' — ' + c.claimAdjustment.reason) : ''},
+    {key:'invoice_unlocked', done: c.invoiceUnlocked, label:'Branch unlocks invoice entry for service centre'},
+    {key:'invoice_submitted', done: !!c.invoiceNumber, label:'Service centre submits invoice number & date', meta: c.invoiceNumber ? (c.invoiceNumber+' · '+c.invoiceDate+(c.invoiceFile?(' · '+c.invoiceFile):'')) : ''},
+    {key:'final_approval', done: c.finalApproved, label:'Head Office final approval'},
+  ];
+  const firstPendingIdx = order.findIndex(o=>!o.done);
+  let html = '<div class="stepflow">';
+  order.forEach((o,i)=>{
+    let role = CLOSURE_ROLES[o.key];
+    if(o.key==='happy_code' && c.isReplacementCall) role = 'system';
+    const cls = o.done ? 'done' : (i===firstPendingIdx ? 'current' : 'pending');
+    html += `<div class="sf-row ${cls}"><div class="sf-dot">${o.done?'&#10003;':i+1}</div><div class="sf-body">
+      <div class="sf-title">${o.label} ${roleBadge(role)}</div>
+      ${o.meta ? `<div class="sf-meta">${o.meta}</div>` : ''}`;
+    if(i===firstPendingIdx){
+      if(role==='system'){
+        setTimeout(()=>{ triggerAutoClosure(t.id); }, 0);
+      } else if(!canAct(role)){
+        html += waitingBlock(role);
+      } else if(o.key==='claim_adjustment'){
+        html += `<form data-action="advance-closure" data-id="${t.id}" class="field-grid" style="margin-top:8px;">
+          <div class="field"><label>Amount (+ / -)</label><input type="number" name="amount" value="0"></div>
+          <div class="field"><label>Reason</label><input type="text" name="reason" value="No adjustment"></div>
+          <div class="field" style="grid-column:1/-1;"><button class="btn btn-sm btn-primary" type="submit">Save adjustment</button></div>
+        </form>`;
+      } else if(o.key==='invoice_submitted'){
+        html += `<form data-action="advance-closure" data-id="${t.id}" class="field-grid" style="margin-top:8px;">
+          <div class="field"><label>Invoice number</label><input type="text" name="invoiceNumber" placeholder="INV-XXXXX" required></div>
+          <div class="field"><label>Invoice date</label><input type="date" name="invoiceDate" required></div>
+          <div class="field" style="grid-column:1/-1;"><label>Attach invoice file</label><input type="file" name="invoiceFile"></div>
+          <div class="field" style="grid-column:1/-1;"><button class="btn btn-sm btn-primary" type="submit">Submit invoice</button></div>
+        </form>`;
+      } else if(o.key==='happy_code'){
+        html += `<div class="sf-action"><button class="btn btn-sm btn-primary" data-action="advance-closure" data-id="${t.id}">Capture Happy Code</button></div>`;
+      } else if(CLOSURE_APPROVALS.has(o.key)){
+        html += `<div class="sf-action">
+          <button class="btn btn-sm btn-primary" data-action="approve-closure" data-id="${t.id}" data-step="${o.key}">Approve</button>
+          <form data-action="reject-closure" data-id="${t.id}" data-step="${o.key}" style="margin-top:8px;max-width:380px;">
+            <textarea name="reason" placeholder="Reason to reject" required style="min-height:44px;"></textarea>
+            <button class="btn btn-sm" type="submit" style="margin-top:6px;">Reject with reason</button>
+          </form>
+        </div>`;
+      } else {
+        html += `<div class="sf-action"><button class="btn btn-sm btn-primary" data-action="advance-closure" data-id="${t.id}">Confirm</button></div>`;
+      }
+    }
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderReturnFlowSteps(t){
+  const r = t.closure.defectiveReturn;
+  const doneKeys = [r.rpoRaised && 'rpo', r.creditNoteIssued && 'credit_note'].filter(Boolean);
+  let html = '<div class="stepflow">';
+  RETURN_STEPS.forEach((step,i)=>{
+    const role = RETURN_ROLES[step.key];
+    const done = doneKeys.includes(step.key);
+    const isCurrent = !done && doneKeys.length===i;
+    const cls = done?'done':(isCurrent?'current':'pending');
+    html += `<div class="sf-row ${cls}"><div class="sf-dot">${done?'&#10003;':i+1}</div><div class="sf-body">
+      <div class="sf-title">${step.label} ${roleBadge(role)}</div>`;
+    if(isCurrent){
+      if(!canAct(role)){ html += waitingBlock(role); }
+      else { html += `<div class="sf-action"><button class="btn btn-sm btn-primary" data-action="advance-return" data-id="${t.id}">Mark complete</button></div>`; }
+    }
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderLog(t){
+  if(!t.log.length) return '';
+  const items = t.log.slice().reverse().map(l=>`<div class="log-item"><span class="log-ts">${l.ts}</span>${l.text}${l.sap? ' <span class="tag sap">SAP</span>':''}</div>`).join('');
+  return `<div class="card"><h3>Activity log</h3><div class="log-list">${items}</div></div>`;
+}
+
+/* ========================= PIN WIDGET ========================= */
+function renderPinBox(mode, custPin, techPin){
+  const cust = custPin || {x:130,y:70};
+  let dots = `<div class="pin-dot" style="left:${cust.x}px;top:${cust.y}px;" title="Customer location"></div>`;
+  if(techPin) dots += `<div class="pin-dot tech" style="left:${techPin.x}px;top:${techPin.y}px;" title="Technician check-in"></div>`;
+  return `<div class="pin-box" id="pinBox" data-mode="${mode}">
+      <svg><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="var(--border)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/></svg>
+      ${dots}
+    </div><div class="pin-hint">${mode==='pick' ? 'Click anywhere to drop the customer\'s shared location pin' : 'Red = customer shared location'}</div>`;
+}
+function pinDistance(a,b){
+  if(!a||!b) return 0;
+  return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2));
+}
+
+/* ========================= NEW TICKET MODAL ========================= */
+function openNewTicketModal(){
+  pendingPin = null;
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="modal-overlay" data-action="close-modal">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>New Ticket</h2>
+      <div class="sub">Create a Registered Complaint or a General Enquiry. Fields marked <span class="required-star">*</span> are required.</div>
+      <form id="newTicketForm">
+        <div class="field-grid">
+          <div class="field"><label>Ticket type <span class="required-star">*</span></label>
+            <select name="ticketType" required>
+              <option value="registered">Registered Complaint</option>
+              <option value="enquiry">General Enquiry</option>
+            </select>
+          </div>
+          <div class="field"><label>Customer type <span class="required-star">*</span></label>
+            <select name="customerType" required>
+              <option value="consumer">Consumer</option>
+              <option value="dealer">Dealer</option>
+              <option value="distributor">Distributor</option>
+            </select>
+          </div>
+          <div class="field"><label>Customer name <span class="required-star">*</span></label><input type="text" name="customerName" required></div>
+          <div class="field"><label>Phone <span class="required-star">*</span></label><input type="text" name="phone" required></div>
+          <div class="field"><label>Intake channel <span class="required-star">*</span></label>
+            <select name="intakeChannel" required>${INTAKE_CHANNELS.map(c=>`<option>${c}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Brand <span class="required-star">*</span></label>
+            <select name="brand" required>${BRANDS.map(b=>`<option>${b}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Product <span class="required-star">*</span></label>
+            <select name="product" required>${PRODUCTS.map(p=>`<option>${p}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Serial number</label><input type="text" name="serial" placeholder="SK-XXXXX-XXXXX"></div>
+          <div class="field"><label>Pincode <span class="required-star">*</span></label><input type="text" name="pincode" required placeholder="e.g. 560073"></div>
+          <div class="field"><label>Purchase channel <span class="required-star">*</span></label>
+            <select name="purchaseChannel" required>${PURCHASE_CHANNELS.map(p=>`<option>${p}</option>`).join('')}</select>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+            <input type="checkbox" name="priority" id="priorityCk" style="width:auto;">
+            <label for="priorityCk" style="margin:0;">Flag as priority</label>
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px;"><label>Complaint / enquiry details <span class="required-star">*</span></label><textarea name="complaint" required></textarea></div>
+        <div class="field" style="margin-top:12px;"><label>Customer location pin</label>
+          ${renderPinBox('pick', null, null)}
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-action="close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  const pinBox = document.getElementById('pinBox');
+  pinBox.addEventListener('click', e=>{
+    const rect = pinBox.getBoundingClientRect();
+    pendingPin = { x: e.clientX-rect.left, y: e.clientY-rect.top };
+    pinBox.innerHTML = `<svg><defs><pattern id="grid2" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="var(--border)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid2)"/></svg><div class="pin-dot" style="left:${pendingPin.x}px;top:${pendingPin.y}px;"></div>`;
+  });
+  document.getElementById('newTicketForm').addEventListener('submit', submitNewTicket);
+  document.querySelectorAll('[data-action="close-modal"]').forEach(el=>{ el.onclick = closeModal; });
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+function submitNewTicket(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const f = Object.fromEntries(fd.entries());
+  f.locationPin = pendingPin;
+  const t = makeTicket(f);
+
+  if(f.customerType==='dealer' || f.customerType==='distributor'){
+    simulateSap(t, 'read', 'Business Partner', 'API_BUSINESS_PARTNER', {CustomerType:f.customerType});
+  }
+
+  if(f.ticketType==='enquiry'){
+    t.enquiryClosed = true;
+    const r = lookupPincode(t.pincode);
+    t.suggestedCentreCached = r.centre || DEFAULT_CENTRE;
+    addLog(t, 'General enquiry received via ' + f.purchaseChannel);
+    addLog(t, 'Enquiry auto-closed — service centre address shared with customer');
+  } else {
+    addLog(t, 'Registered complaint created');
+    simulateSap(t, 'read', 'Sales Order', 'API_SALES_ORDER_SRV', {Note:'Linked to original purchase record'});
+    allocateAuto(t);
+  }
+
+  state.tickets.push(t);
+  saveState();
+  closeModal();
+  activeTicketId = t.id;
+  render();
+  showToast('Ticket ' + t.id + ' created');
+}
+
+/* ========================= EVENT BINDING ========================= */
+function bindEvents(){
+  document.querySelectorAll('[data-action]').forEach(el=>{
+    if(el.tagName==='FORM') return;
+    el.onclick = handleAction;
+  });
+  document.querySelectorAll('form[data-action]').forEach(f=>{
+    f.onsubmit = handleFormAction;
+  });
+}
+function findTicket(id){ return state.tickets.find(x=>x.id===id); }
+
+function handleAction(e){
+  const el = e.currentTarget;
+  const action = el.dataset.action;
+  const id = el.dataset.id;
+  if(action==='nav'){ activePage = el.dataset.page; activeTicketId=null; render(); return; }
+  if(action==='open-new-ticket'){ openNewTicketModal(); return; }
+  if(action==='close-modal'){ closeModal(); return; }
+  if(action==='open-ticket'){ activeTicketId = id; render(); return; }
+  if(action==='reset-demo'){ if(confirm('Reset all demo data? This clears tickets you\'ve created.')){ seedDemoData(); saveState(); activeTicketId=null; activePage='dashboard'; currentRole='all'; render(); showToast('Demo data reset'); } return; }
+
+  if(action==='convert-enquiry'){
+    if(!canAct('asc')) return;
+    const t = findTicket(id);
+    const wt = makeTicket({ ticketType:'registered', customerType:t.customerType, customerName:t.customerName, phone:t.phone,
+      product:t.product, model:t.product, serial:t.serial, pincode:t.pincode, purchaseChannel:t.purchaseChannel,
+      complaint:t.complaint, locationPin:t.locationPin, linkedFromEnquiry:t.id,
+      intakeChannel:t.intakeChannel, brand:t.brand });
+    wt.mapped = true; wt.serviceCentre = t.suggestedCentreCached || DEFAULT_CENTRE;
+    addLog(wt, 'Workshop Ticket opened directly at ' + wt.serviceCentre + ' (converted from enquiry ' + t.id + ')');
+    state.tickets.push(wt);
+    t.convertedTicketId = wt.id;
+    addLog(t, 'Converted to Workshop Ticket ' + wt.id);
+    saveState(); activeTicketId = wt.id; render(); showToast('Workshop Ticket ' + wt.id + ' created'); return;
+  }
+  if(action==='tech-checkin'){
+    if(!canAct('technician')) return;
+    const t = findTicket(id);
+    const base = t.locationPin || {x:130,y:70};
+    t.techCheckIn = { x: base.x + (Math.random()*30-15), y: base.y + (Math.random()*30-15) };
+    addLog(t, 'Technician checked in on-site');
+    saveState(); render(); return;
+  }
+  if(action==='set-outcome'){
+    if(!canAct('technician')) return;
+    const t = findTicket(id);
+    const evEl = document.getElementById('evidenceFile');
+    const evidenceFile = (evEl && evEl.files && evEl.files[0]) ? evEl.files[0].name : null;
+    setOutcome(t, el.dataset.outcome, false, evidenceFile);
+    saveState(); render(); return;
+  }
+  if(action==='part-received'){
+    if(!canAct('asc')) return;
+    const t = findTicket(id);
+    t.appointment = null; t.techCheckIn = null; t.visitOutcome = null;
+    addLog(t, 'Part received — visit rescheduled');
+    saveState(); render(); return;
+  }
+  if(action==='schedule-revisit'){
+    if(!canAct('branch')) return;
+    const t = findTicket(id);
+    t.appointment = null; t.techCheckIn = null; t.visitOutcome = null;
+    addLog(t, 'Revisit — rescheduling appointment');
+    saveState(); render(); return;
+  }
+  if(action==='advance-replacement'){
+    const t = findTicket(id);
+    const nextStep = REPLACEMENT_STEPS[t.replacement.completed.length];
+    if(nextStep && !canAct(REPLACEMENT_ROLES[nextStep.key])) return;
+    advanceReplacement(t);
+    saveState(); render(); return;
+  }
+  if(action==='approve-replacement'){
+    const t = findTicket(id);
+    const nextStep = REPLACEMENT_STEPS[t.replacement.completed.length];
+    if(nextStep && !canAct(REPLACEMENT_ROLES[nextStep.key])) return;
+    approveReplacementStep(t);
+    saveState(); render(); return;
+  }
+  if(action==='advance-return'){
+    const t = findTicket(id);
+    const r = t.closure.defectiveReturn;
+    const nextKey = !r.rpoRaised ? 'rpo' : 'credit_note';
+    if(!canAct(RETURN_ROLES[nextKey])) return;
+    advanceReturn(t);
+    saveState(); render(); return;
+  }
+  if(action==='advance-closure'){
+    const t = findTicket(id);
+    const c = t.closure;
+    let role;
+    if(c.deductionApplied===null) role = c.isReplacementCall ? 'system' : 'technician';
+    else if(!c.claimAdjustment) role = 'ho';
+    else if(!c.invoiceUnlocked) role = 'branch';
+    if(role && !canAct(role)) return;
+    advanceClosure(t);
+    saveState(); render(); return;
+  }
+  if(action==='approve-closure'){
+    if(!canAct('ho')) return;
+    const t = findTicket(id);
+    approveClosureStep(t, el.dataset.step);
+    saveState(); render(); return;
+  }
+}
+function handleFormAction(e){
+  e.preventDefault();
+  const form = e.currentTarget;
+  const action = form.dataset.action;
+  const id = form.dataset.id;
+  const fd = new FormData(form);
+  const t = findTicket(id);
+  if(action==='allocate-branch'){
+    if(!canAct('branch')) return;
+    t.serviceCentre = fd.get('centre');
+    addLog(t, 'Branch manually allocated to ' + t.serviceCentre);
+  } else if(action==='assign-tech'){
+    if(!canAct('branch')) return;
+    t.technician = fd.get('tech');
+    addLog(t, 'Technician assigned: ' + t.technician);
+  } else if(action==='book-appt'){
+    if(!canAct('branch')) return;
+    t.appointment = fd.get('appt');
+    addLog(t, 'Appointment booked for ' + fd.get('appt'));
+  } else if(action==='advance-closure'){
+    advanceClosure(t, fd);
+  } else if(action==='submit-docs-replacement'){
+    if(!canAct('asc')) return;
+    submitReplacementDocs(t, fd);
+  } else if(action==='reject-replacement'){
+    if(!canAct('branch') && !canAct('ho')) return;
+    rejectReplacementStep(t, fd.get('reason'));
+  } else if(action==='reject-closure'){
+    if(!canAct('ho')) return;
+    rejectClosureStep(t, form.dataset.step, fd.get('reason'));
+  }
+  saveState(); render();
+}
+
+/* ========================= TOAST / INIT ========================= */
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(window._tt); window._tt = setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+loadState();
+render();
+</script>
+</body>
+</html>
