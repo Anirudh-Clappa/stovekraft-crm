@@ -191,6 +191,8 @@
   .bar-fill{height:100%;background:var(--red);border-radius:5px;}
   .pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:14px;}
   .pager .meta{font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .table-scroll{overflow-x:auto;}
+  .payout-total{margin-top:12px;font-size:13px;font-weight:700;}
   .analytics-frame{width:100%;height:720px;border:0;border-radius:0;background:transparent;display:block;}
   .analytics-embed{border:0;background:transparent;padding:0;box-shadow:none;}
   .bi-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
@@ -433,6 +435,8 @@ let pendingPin = null;
 let crmPage = 1;
 const CRM_PAGE_SIZE = 5;
 let logsSubtab = 'activity';
+let payoutMonth = '';
+let payoutShowExcluded = false;
 let sapMode = 'simulated'; // 'simulated' | 'real'
 let sidebarCollapsed = false;
 let theme = 'light';
@@ -755,6 +759,62 @@ function applyIntakeFromDef(t, def){
   t.clappiaSubmissionId = def.clappiaSubmissionId;
 }
 
+/* Fixed, idempotent demo tickets that guarantee the Monthly Payout Report
+   always has something to show, independent of whatever real submissions
+   Clappia returns. They survive re-syncs the same way real Clappia tickets
+   do — reused by fixed id if already present, only rebuilt from scratch on
+   a full Reset. Closed "now" so they always land in the current month. */
+const SAMPLE_PAYOUT_DEFS = [
+  { id:'TCK-SAMPLE-1', customerName:'Ravi Kumar', phone:'98802 11340', brand:'Pigeon', product:'Pressure Cooker PC-5L',
+    serial:'SK-PGN-PRC-51029', pincode:'560073', purchaseDate:'2024-05-10', technician:'Anitha R.',
+    appointment:'2026-09-18T10:30', complaint:'Gasket worn, losing pressure',
+    invoiceNumber:'INV-77522', amount:1150, adj:0, adjReason:'No adjustment' },
+  { id:'TCK-SAMPLE-2', customerName:'Lakshmi Nair', phone:'97450 88213', brand:'Gilma', product:'Kitchen Chimney',
+    serial:'SK-GLM-CHM-60312', pincode:'560001', purchaseDate:'2026-01-15', technician:'Faizal K.',
+    appointment:'2026-09-22T14:00', complaint:'Suction motor noisy, weak airflow',
+    invoiceNumber:'INV-77531', amount:3200, adj:150, adjReason:'Goodwill — repeat visit' },
+  { id:'TCK-SAMPLE-3', customerName:'Farhan Sheikh', phone:'96110 44902', brand:'Pigeon', product:'Gas Stove GS-3B',
+    serial:'SK-PGN-GAS-30875', pincode:'560073', purchaseDate:'2024-03-01', technician:'Ramesh P.',
+    appointment:'2026-09-12T11:00', complaint:'Burner valve leaking gas smell',
+    invoiceNumber:'INV-77498', amount:980, adj:0, adjReason:'No adjustment' },
+];
+async function buildSamplePayoutTicket(def){
+  const t = makeTicket({
+    ticketType:'registered', customerType:'consumer', customerName:def.customerName, phone:def.phone,
+    intakeChannel:'Call Centre', brand:def.brand, product:def.product, model:def.product, serial:def.serial,
+    pincode:def.pincode, purchaseDate:def.purchaseDate, purchaseChannel:'Retail Store', complaint:def.complaint,
+  });
+  t.id = def.id;
+  t.samplePayout = true;
+  await allocateAuto(t);
+  t.technician = def.technician; addLog(t, 'Technician assigned: ' + def.technician);
+  t.appointment = def.appointment; addLog(t, 'Appointment booked');
+  await setOutcome(t, 'closed_with_part', true);
+  t.closure.happyCode = 'HC-' + Math.floor(10000+Math.random()*89999);
+  t.closure.deductionApplied = true;
+  addLog(t, 'Happy Code captured: ' + t.closure.happyCode + ' (95% deduction applied)');
+  runDuplicateCheck(t);
+  t.closure.hoConfirmed = true; addLog(t, 'Head Office confirmed the closed call');
+  t.closure.unbilled = true; addLog(t, 'Pushed to Unbilled Transaction queue');
+  t.closure.claimAdjustment = { amount: def.adj, reason: def.adjReason };
+  addLog(t, 'Claim adjustment recorded: ' + (def.adj ? ('+'+def.adj+' — '+def.adjReason) : 'none'));
+  t.closure.invoiceUnlocked = true; addLog(t, 'Branch unlocked invoice entry for service centre');
+  t.closure.invoiceNumber = def.invoiceNumber; t.closure.invoiceDate = new Date().toISOString().slice(0,10);
+  addLog(t, 'Invoice ' + def.invoiceNumber + ' submitted by service centre');
+  simulateSap(t, 'write', 'Billing Document', 'API_BILLING_DOCUMENT_SRV', { InvoiceNo: def.invoiceNumber, Amount: def.amount });
+  t.closure.finalApproved = true; addLog(t, 'Head Office gave final approval — ticket closed');
+  t.closure.payoutIncluded = true;
+  return t;
+}
+async function appendSamplePayoutTickets(next, prior){
+  const priorById = new Map();
+  prior.forEach(t => { if(t.samplePayout) priorById.set(t.id, t); });
+  for(const def of SAMPLE_PAYOUT_DEFS){
+    if(priorById.has(def.id)){ next.push(priorById.get(def.id)); continue; }
+    next.push(await buildSamplePayoutTicket(def));
+  }
+}
+
 async function materialiseTickets(defs, { fresh }){
   const prior = fresh ? [] : (state.tickets || []);
   const bySub = new Map();
@@ -788,6 +848,7 @@ async function materialiseTickets(defs, { fresh }){
       if(t.linkedFromEnquiry && keptIds.has(t.linkedFromEnquiry)) next.push(t);
     });
   }
+  await appendSamplePayoutTickets(next, prior);
   state.tickets = next;
 }
 
@@ -1125,7 +1186,7 @@ function render(){
   if(activePage==='crm'){ titleEl.textContent='Service CRM'; subEl.textContent='All service tickets'; content.innerHTML = renderCrmPage(); }
   else if(activePage==='field'){ titleEl.textContent='Field Tracker'; subEl.textContent='Technician appointments and field-entry sync'; content.innerHTML = renderFieldPage(); }
   else if(activePage==='analytics'){ titleEl.textContent='Analytics'; subEl.textContent='Intake, stage, and brand breakdowns'; content.innerHTML = renderAnalyticsPage(); }
-  else if(activePage==='reports'){ titleEl.textContent='Reports'; subEl.textContent='Ticket breakdowns'; content.innerHTML = renderReportsPage(); }
+  else if(activePage==='reports'){ titleEl.textContent='Reports'; subEl.textContent = 'Monthly in-warranty payout'; content.innerHTML = renderReportsPage(); }
   else if(activePage==='logs'){ titleEl.textContent='Logs'; subEl.textContent='Activity, SAP integration, and Clappia sync'; content.innerHTML = renderLogsPage(); }
   bindEvents();
 }
@@ -1361,27 +1422,142 @@ function renderAnalyticsPage(){
 }
 
 /* ========================= PAGE: REPORTS ========================= */
-function renderReportsPage(){
-  const tickets = state.tickets;
-  function bars(groupFn, title){
-    const counts = {};
-    tickets.forEach(t=>{ const k = groupFn(t); counts[k] = (counts[k]||0)+1; });
-    const max = Math.max(1, ...Object.values(counts));
-    const rows = Object.entries(counts).map(([k,v])=>`
-      <div class="bar-row"><div class="bar-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(0)}%;"></div></div></div>
-    `).join('');
-    return `<div class="card"><h3>${title}</h3>${rows || '<div class="empty">No data yet.</div>'}</div>`;
+function warrantyActiveAtClosure(t){
+  const at = t.closure && t.closure.closedAtISO ? new Date(t.closure.closedAtISO) : null;
+  if(!at || isNaN(at.getTime())) return null;
+  const entry = getCatalogEntry(t.brand, t.product);
+  if(!entry || !t.purchaseDate) return null;
+  const purchase = purchaseDateAsLocal(t.purchaseDate);
+  if(!purchase) return null;
+  const expiry = new Date(purchase.getTime());
+  expiry.setMonth(expiry.getMonth() + entry.warrantyMonths);
+  return at.getTime() <= expiry.getTime();
+}
+function billingGross(t){
+  const entries = (state.integrationLog || []).filter(e => e.ticketId===t.id && e.object==='Billing Document');
+  for(let i = entries.length - 1; i >= 0; i--){
+    try{
+      const payload = JSON.parse(entries[i].payload || '{}');
+      if(payload.Amount != null && payload.Amount !== '') return Number(payload.Amount);
+    }catch(e){}
   }
-  let html = '';
-  html += bars(t=>stageTag(t).replace(/<[^>]+>/g,''), 'Tickets by stage');
-  html += bars(t=>t.brand, 'Tickets by brand');
-  html += bars(t=>t.intakeChannel, 'Tickets by intake channel');
-  html += `<div class="card"><h3>SAP touchpoints fired</h3>${
-    (()=>{ const counts={}; state.integrationLog.forEach(e=>{counts[e.object]=(counts[e.object]||0)+1;}); const max=Math.max(1,...Object.values(counts));
-      return Object.entries(counts).map(([k,v])=>`<div class="bar-row"><div class="bar-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(0)}%;background:var(--sap);"></div></div></div>`).join('') || '<div class="empty">No SAP calls fired yet.</div>';
-    })()
-  }</div>`;
-  return html;
+  return null;
+}
+function payoutMath(t){
+  const c = t.closure || {};
+  const pct = c.deductionApplied ? 95 : 0;
+  const adj = c.claimAdjustment ? Number(c.claimAdjustment.amount) : 0;
+  const gross = billingGross(t);
+  const net = gross==null || isNaN(gross) ? null : Math.round((gross * pct / 100 + (isNaN(adj) ? 0 : adj)) * 100) / 100;
+  return {
+    pct,
+    adj: isNaN(adj) ? 0 : adj,
+    reason: (c.claimAdjustment && c.claimAdjustment.reason) || '—',
+    net,
+  };
+}
+function inr(n){
+  if(n==null || isNaN(n)) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function htmlEsc(s){
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function payoutRowsForMonth(monthKey){
+  const closed = state.tickets.filter(t => t.closure && closureFullyDone(t));
+  const inMonth = closed.filter(t => {
+    const d = new Date(t.closure.closedAtISO);
+    if(isNaN(d.getTime())) return false;
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return key === monthKey;
+  });
+  const payable = inMonth.filter(t => t.closure.happyCode && warrantyActiveAtClosure(t) === true);
+  const excluded = inMonth.filter(t => warrantyActiveAtClosure(t) === false);
+  return { payable, excluded };
+}
+function payoutCells(t, notPayable){
+  const c = t.closure;
+  const math = payoutMath(t);
+  const dup = c.duplicateSerialFlag===true ? 'Flagged' : (c.duplicateSerialFlag===false ? 'Pass' : '—');
+  const closed = c.closedAtISO ? fmtDate(new Date(c.closedAtISO)) : (c.closedAt || '—');
+  return [
+    t.id,
+    t.customerName || '—',
+    (t.brand || '—') + ' / ' + (t.product || '—'),
+    t.serviceCentre || '—',
+    closed,
+    c.happyCode || '—',
+    dup,
+    inr(math.adj),
+    math.reason,
+    c.invoiceNumber || '—',
+    c.invoiceDate ? displayPurchaseDate(c.invoiceDate) : '—',
+    (c.happyCode ? math.pct + '%' : '—'),
+    notPayable ? 'Not payable — out of warranty' : inr(math.net),
+    c.finalApproved ? 'Approved' : 'Pending',
+  ];
+}
+const PAYOUT_HEADERS = ['Ticket ID','Customer name','Brand / Product','Service centre (ASC)','Date closed','Happy Code','Duplicate-serial check','Claim adjustment amount','Claim adjustment reason','Invoice number','Invoice date','Deduction %','Net payable amount','Final HO approval'];
+function renderPayoutReport(){
+  if(!canAct('ho')){
+    return `<div class="card"><h3>Monthly Payout Report</h3><div class="waiting-block">This payout report is available to Head Office.</div></div>`;
+  }
+  if(!payoutMonth){
+    const now = new Date();
+    payoutMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+  const { payable, excluded } = payoutRowsForMonth(payoutMonth);
+  const visible = payoutShowExcluded ? payable.concat(excluded) : payable;
+  const total = payable.reduce((sum, t) => {
+    const net = payoutMath(t).net;
+    return sum + (net==null ? 0 : net);
+  }, 0);
+  const head = PAYOUT_HEADERS.map(h=>`<th>${h}</th>`).join('');
+  const body = visible.map(t => {
+    const notPayable = warrantyActiveAtClosure(t) === false;
+    return `<tr>${payoutCells(t, notPayable).map(c=>`<td>${htmlEsc(c)}</td>`).join('')}</tr>`;
+  }).join('');
+  return `<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <h3 style="margin:0;">Monthly Payout Report</h3>
+        <button type="button" class="btn btn-sm btn-primary" data-action="download-payout">Download as Excel</button>
+      </div>
+      <div class="pin-hint" style="margin-bottom:12px;">Payable rows are fully closed, in warranty at the closure date, and have a Happy Code. The deduction column shows 95% when that Happy Code rule applies. Net payable is the SAP billing amount × that percentage, plus the claim adjustment. Out-of-warranty tickets stay out of the total.</div>
+      <div class="btn-row" style="gap:12px;align-items:flex-end;margin-bottom:14px;">
+        <div class="field" style="margin:0;"><label>Month closed</label><input type="month" id="payoutMonth" value="${payoutMonth}"></div>
+        <button type="button" class="btn btn-sm" data-action="toggle-payout-excluded">${payoutShowExcluded ? 'Hide out-of-warranty tickets' : 'Show out-of-warranty tickets'}</button>
+      </div>
+      ${visible.length ? `<div class="table-scroll"><table class="list"><tr>${head}</tr>${body}</table></div>
+        <div class="payout-total">Net payable this month: ${inr(total)} <span style="font-weight:600;color:var(--ink-soft);">(${payable.length} payable claim${payable.length===1?'':'s'})</span></div>`
+        : '<div class="empty">No payable in-warranty claims were closed this month.</div>'}
+      ${payoutShowExcluded && excluded.length ? `<div class="pin-hint" style="margin-top:8px;">${excluded.length} closed ticket${excluded.length===1?'':'s'} flagged Not payable — out of warranty. They are listed above and left out of the total.</div>` : ''}
+    </div>`;
+}
+function downloadPayoutExcel(){
+  if(!canAct('ho')) return;
+  const { payable, excluded } = payoutRowsForMonth(payoutMonth);
+  const visible = payoutShowExcluded ? payable.concat(excluded) : payable;
+  const xmlEsc = (s) => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const rowXml = (cells) => '<Row>' + cells.map(c => `<Cell><Data ss:Type="String">${xmlEsc(c)}</Data></Cell>`).join('') + '</Row>';
+  const dataRows = visible.map(t => payoutCells(t, warrantyActiveAtClosure(t) === false));
+  const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Worksheet ss:Name="Payout ${xmlEsc(payoutMonth)}"><Table>
+${rowXml(PAYOUT_HEADERS)}
+${dataRows.map(rowXml).join('')}
+</Table></Worksheet></Workbook>`;
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'In-warranty-payout-' + payoutMonth + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function renderReportsPage(){
+  return renderPayoutReport();
 }
 
 /* ========================= PAGE: LOGS ========================= */
@@ -1898,6 +2074,8 @@ function bindEvents(){
   applyLoadBanner();
   document.querySelectorAll('[data-action]').forEach(el=>{ if(el.tagName==='FORM') return; el.onclick = handleAction; });
   document.querySelectorAll('form[data-action]').forEach(f=>{ f.onsubmit = handleFormAction; });
+  const monthEl = document.getElementById('payoutMonth');
+  if(monthEl) monthEl.onchange = () => { payoutMonth = monthEl.value; render(); };
 }
 function findTicket(id){ return state.tickets.find(x=>x.id===id); }
 
@@ -1932,6 +2110,8 @@ async function handleAction(e){
     render(); return;
   }
   if(action==='logs-subtab'){ logsSubtab = el.dataset.sub; render(); return; }
+  if(action==='toggle-payout-excluded'){ payoutShowExcluded = !payoutShowExcluded; render(); return; }
+  if(action==='download-payout'){ downloadPayoutExcel(); return; }
   if(action==='sap-mode'){ sapMode = el.dataset.mode; render(); return; }
   if(action==='toggle-theme'){ theme = theme==='dark' ? 'light' : 'dark'; saveState(); render(); return; }
   if(action==='toggle-sap-mode'){ sapMode = sapMode==='real' ? 'simulated' : 'real'; render(); return; }
