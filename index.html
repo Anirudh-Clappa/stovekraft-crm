@@ -162,10 +162,6 @@
   .log-item:last-child{border-bottom:none;}
   .log-ts{color:var(--ink-faint);font-size:11px;margin-right:8px;}
 
-  .pin-box{position:relative;width:100%;max-width:280px;height:140px;background:var(--bg);border:1.5px dashed var(--border);border-radius:8px;cursor:crosshair;overflow:hidden;}
-  .pin-box svg{width:100%;height:100%;}
-  .pin-dot{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid #fff;box-shadow:0 0 0 1px var(--red);transform:translate(-50%,-50%);pointer-events:none;}
-  .pin-dot.tech{background:var(--blue);box-shadow:0 0 0 1px var(--blue);}
   .pin-hint{font-size:11px;color:var(--ink-faint);margin-top:5px;}
 
   .modal-overlay{position:fixed;inset:0;background:rgba(20,14,12,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
@@ -302,11 +298,22 @@ const PRODUCT_CATALOG = {
 };
 function catalogFor(brand){ return PRODUCT_CATALOG[brand] || []; }
 function getCatalogEntry(brand, productName){ return catalogFor(brand).find(p=>p.name===productName) || null; }
+function purchaseDateAsLocal(value){
+  if(!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  if(m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+function displayPurchaseDate(value){
+  const d = purchaseDateAsLocal(value);
+  return d ? fmtDate(d) : (value || '—');
+}
 function getWarrantyStatus(ticket){
   const entry = getCatalogEntry(ticket.brand, ticket.product);
   if(!entry || !ticket.purchaseDate) return null;
-  const purchase = new Date(ticket.purchaseDate);
-  if(isNaN(purchase.getTime())) return null;
+  const purchase = purchaseDateAsLocal(ticket.purchaseDate);
+  if(!purchase) return null;
   const expiry = new Date(purchase);
   expiry.setMonth(expiry.getMonth() + entry.warrantyMonths);
   return { active: Date.now() <= expiry.getTime(), expiry, warrantyMonths: entry.warrantyMonths, purchase };
@@ -381,6 +388,7 @@ const NAV = [
 
 let state = { tickets: [], counter: 1000, integrationLog: [], clappiaLog: [] };
 let ticketsLoading = false;
+let ticketsRefreshing = false;
 let ticketsLoadError = null;
 let activePage = 'dashboard';
 let activeTicketId = null;
@@ -449,8 +457,9 @@ const CLAPPIA_TICKETS_APP_ID = 'LEB315123';
 
 /* Every ticket on this page is a live Clappia submission. Pages are
    followed with lastSubmissionId until metadata.totalCount is reached.
-   Stage, technician, appointment, closure, and pincode → service-centre
-   mapping are not in Clappia — they stay in this file. */
+   Technician, appointment, closure steps, and pincode → service-centre
+   mapping stay in this file. field_diagnosis, when it matches a visit
+   outcome on this page, moves the ticket into that outcome's next stage. */
 async function clappiaFetchAllSubmissions(){
   const pageSize = 100;
   const all = [];
@@ -490,9 +499,9 @@ function fmtClappiaTime(ms){
 }
 
 /* Turns one Clappia submission into the ticket-definition shape makeTicket()
-   expects. Field names are Clappia's truncated fieldNames (customer_n,
-   customer_t, intake_cha, customer_p, complaint_, ticket_typ, pin_code,
-   serial_num, branch_nam) on the Service Ticket app. */
+   expects. Field names are Clappia's truncated fieldNames on the Service
+   Ticket app. Service centre comes from branch_name; pincode coverage stays
+   local. Older captures used the shorter key branch_nam. */
 function mapSubmissionToTicketDef(sub){
   const fv = (sub && sub.submissionFieldValues) || {};
   const val = (key) => (fv[key] && fv[key][0]) || '';
@@ -504,6 +513,7 @@ function mapSubmissionToTicketDef(sub){
   const isEnquiry = /enquiry/i.test(val('ticket_typ'));
   const createdAt = fmtClappiaTime(sub && sub.createdAt);
   const createdDate = sub && sub.createdAt ? new Date(Number(sub.createdAt)) : null;
+  const purchaseDate = val('purchase_date') || val('purchase_dat') || null;
   return {
     ticketType: isEnquiry ? 'enquiry' : 'registered',
     customerType,
@@ -514,11 +524,12 @@ function mapSubmissionToTicketDef(sub){
     model: entry ? entry.material : product,
     serial: val('serial_num') || '',
     pincode: val('pin_code') || '',
-    purchaseDate: null,
-    purchaseChannel: null,
+    purchaseDate: purchaseDate || null,
+    purchaseChannel: val('purchase_channel') || val('purchase_c') || null,
     complaint: val('complaint_') || '',
     locationPin: null,
-    branchNameFromClappia: val('branch_nam') || null,
+    branchNameFromClappia: val('branch_name') || val('branch_nam') || null,
+    fieldDiagnosis: val('field_diagnosis') || null,
     clappiaSubmissionId: sub.submissionId || null,
     createdAt: createdAt,
     createdAtISO: createdDate && !isNaN(createdDate.getTime()) ? createdDate.toISOString() : null,
@@ -604,7 +615,6 @@ async function runSeedScriptFor(t){
     await allocateAuto(t);
     t.technician = 'Anitha R.'; addLog(t, 'Technician assigned: Anitha R.');
     t.appointment = '2026-09-20T11:00'; addLog(t, 'Appointment booked for 20 Sep, 11:00 AM');
-    t.techCheckIn = {x:62,y:52}; addLog(t, 'Technician checked in on-site');
     await setOutcome(t, 'closed_with_part', true);
     t.closure.happyCode = 'HC-88231'; t.closure.deductionApplied = true; addLog(t,'Happy Code captured: HC-88231 (95% deduction applied)');
     runDuplicateCheck(t);
@@ -626,7 +636,6 @@ async function runSeedScriptFor(t){
     simulateSap(t, 'read', 'Sales Order', 'API_SALES_ORDER_SRV', {Note:'Linked to original purchase'});
     t.technician = 'Faizal K.'; addLog(t,'Technician assigned: Faizal K.');
     t.appointment = '2026-09-24T15:00'; addLog(t,'Appointment booked for 24 Sep, 3:00 PM');
-    t.techCheckIn = {x:143,y:74}; addLog(t,'Technician checked in on-site');
     await setOutcome(t, 'replacement', true);
     simulateSap(t, 'read', 'Product Master', 'API_PRODUCT_SRV', {Material:'IC-2100'});
     advanceReplacement(t);
@@ -644,7 +653,8 @@ async function runSeedScriptFor(t){
   if(t.ticketType==='enquiry'){
     t.enquiryClosed = true;
     const r = await clappiaLookupPincode(t.pincode);
-    t.suggestedCentreCached = r.centre || DEFAULT_CENTRE;
+    t.mapped = r.mapped;
+    t.suggestedCentreCached = t.branchNameFromClappia || r.centre || DEFAULT_CENTRE;
     addLog(t, 'General enquiry received via ' + (t.intakeChannel||'Clappia'));
     addLog(t, 'Enquiry auto-closed — service centre address shared with customer');
   } else {
@@ -665,6 +675,10 @@ function applyIntakeFromDef(t, def){
   t.serial = def.serial;
   t.pincode = def.pincode;
   t.complaint = def.complaint;
+  t.purchaseDate = def.purchaseDate || null;
+  t.purchaseChannel = def.purchaseChannel || null;
+  t.branchNameFromClappia = def.branchNameFromClappia || null;
+  if(t.branchNameFromClappia) t.serviceCentre = t.branchNameFromClappia;
   t.clappiaSubmissionId = def.clappiaSubmissionId;
 }
 
@@ -682,6 +696,7 @@ async function materialiseTickets(defs, { fresh }){
       if(pinChanged && !t.technician && !t.visitOutcome && !t.replacement && !t.closure){
         await allocateAuto(t);
       }
+      await applyClappiaFieldDiagnosis(t, def.fieldDiagnosis);
     } else {
       if(!def.locationPin) def.locationPin = nextDemoPin();
       t = makeTicket(def);
@@ -690,6 +705,7 @@ async function materialiseTickets(defs, { fresh }){
         t.log[t.log.length-1].clappia = true;
       }
       await runSeedScriptFor(t);
+      await applyClappiaFieldDiagnosis(t, def.fieldDiagnosis);
     }
     keptIds.add(t.id);
     next.push(t);
@@ -741,6 +757,7 @@ function makeTicket(f){
     intakeChannel: f.intakeChannel || 'Call Centre',
     priority: !!f.priority,
     pincode: f.pincode, purchaseChannel: f.purchaseChannel, complaint: f.complaint, purchaseDate: f.purchaseDate || null,
+    branchNameFromClappia: f.branchNameFromClappia || null,
     locationPin: f.locationPin || null,
     createdAt: f.createdAt || nowStr(), createdAtISO: f.createdAtISO || new Date().toISOString(),
     mapped: null, serviceCentre: null, technician: null, appointment: null, techCheckIn: null,
@@ -769,6 +786,12 @@ function simulateSap(ticket, method, object, endpoint, payload){
 async function allocateAuto(ticket){
   const r = await clappiaLookupPincode(ticket.pincode);
   ticket.mapped = r.mapped;
+  if(ticket.branchNameFromClappia){
+    ticket.serviceCentre = ticket.branchNameFromClappia;
+    addLog(ticket, 'Service centre set from branch name: ' + ticket.branchNameFromClappia);
+    ticket.log[ticket.log.length-1].clappia = true;
+    return;
+  }
   if(r.mapped){
     ticket.serviceCentre = r.centre;
     addLog(ticket, 'Pincode ' + ticket.pincode + ' is covered — auto-allocated to ' + r.centre, null);
@@ -795,6 +818,40 @@ async function setOutcome(ticket, outcome, silent, evidenceFile){
     if(!silent) addLog(ticket, 'Replacement sub-flow started');
   }
   if(outcome === 'closed_no_part' || outcome === 'closed_with_part'){ initClosure(ticket, false); }
+}
+/* Button labels on the field-diagnosis card. field_diagnosis from Clappia
+   must match one of these (or the outcome key) to advance the ticket. */
+const FIELD_DIAGNOSIS_OPTIONS = [
+  ['closed_no_part', 'Closed without a part'],
+  ['closed_with_part', 'Closed with a part'],
+  ['part_pending', 'Part pending'],
+  ['revisit', 'Revisit needed'],
+  ['replacement', 'Replacement needed'],
+  ['cancelled', 'Cancelled'],
+];
+function diagnosisToOutcome(raw){
+  const s = String(raw || '').trim().toLowerCase();
+  if(!s) return null;
+  const hit = FIELD_DIAGNOSIS_OPTIONS.find(([key, label]) => s === key || s === label.toLowerCase());
+  return hit ? hit[0] : null;
+}
+/* Applies a Clappia field_diagnosis only when it matches an on-screen outcome
+   and this ticket has not already recorded one in the browser. A diagnosis
+   already applied is not applied again, so a later reschedule stays put
+   until Clappia sends a different value. */
+async function applyClappiaFieldDiagnosis(ticket, raw){
+  const label = String(raw || '').trim();
+  const outcome = diagnosisToOutcome(label);
+  if(!outcome || ticket.visitOutcome) return;
+  if(ticket.appliedFieldDiagnosis === label) return;
+  ticket.appliedFieldDiagnosis = label;
+  addLog(ticket, 'Field diagnosis from Clappia: ' + label);
+  ticket.log[ticket.log.length-1].clappia = true;
+  await setOutcome(ticket, outcome, true);
+  if(outcome === 'part_pending'){
+    simulateSap(ticket, 'write', 'Purchase Order', 'API_PURCHASEORDER_PROCESS_SRV', {Material:ticket.model, Qty:1});
+  }
+  if(outcome === 'replacement') addLog(ticket, 'Replacement sub-flow started');
 }
 function outcomeLabel(o){
   return { closed_no_part:'Closed without a part', closed_with_part:'Closed with a part', part_pending:'Part pending — Purchase Order raised',
@@ -963,6 +1020,10 @@ function syncSapModeSwitch(){
   const sw = document.getElementById('sapModeSwitch');
   if(sw) sw.classList.toggle('on', sapMode==='real');
 }
+function refreshTicketsButton(){
+  return `<button type="button" class="btn btn-sm" data-action="refresh-tickets"${ticketsRefreshing?' disabled':''}><svg class="ic" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M21 12a9 9 0 1 1-2.6-6.3M21 4v5h-5"/></svg>${ticketsRefreshing?'Refreshing…':'Refresh'}</button>`;
+}
+
 function render(){
   applyTheme(); applyCollapse();
   buildNav(); buildRoleSwitcher(); syncSapModeSwitch();
@@ -997,16 +1058,16 @@ function render(){
 /* ========================= SHARED HELPERS ========================= */
 function stageOf(t){
   if(t.ticketType==='enquiry' && !t.convertedTicketId) return 'enquiry_closed';
-  if(!t.serviceCentre) return 'awaiting_allocation';
-  if(!t.technician) return 'awaiting_technician';
-  if(!t.appointment) return 'awaiting_appointment';
-  if(!t.visitOutcome) return 'awaiting_visit';
   if(t.visitOutcome==='cancelled') return 'cancelled';
   if(t.visitOutcome==='part_pending') return 'part_pending';
   if(t.visitOutcome==='revisit') return 'revisit';
   if(t.replacement && !t.closure) return 'replacement_flow';
   if(t.closure && !closureFullyDone(t)) return 'closure_flow';
   if(t.closure && closureFullyDone(t)) return 'closed_paid';
+  if(!t.serviceCentre) return 'awaiting_allocation';
+  if(!t.technician) return 'awaiting_technician';
+  if(!t.appointment) return 'awaiting_appointment';
+  if(!t.visitOutcome) return 'awaiting_visit';
   return 'in_progress';
 }
 function stageTag(t){
@@ -1102,7 +1163,11 @@ function renderCrmPage(){
       <div class="kpi"><b>${c.closure}</b><span>In closure & claims</span></div>
       <div class="kpi"><b>${c.closed}</b><span>Closed & paid out</span></div>
     </div>
-    <div class="card"><h3>Service tickets</h3>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
+        <h3 style="margin:0;">Service tickets</h3>
+        ${refreshTicketsButton()}
+      </div>
       ${ticketsLoading ? '<div class="empty">Loading tickets from Clappia…</div>' : (state.tickets.length ? `<table class="list"><tr><th>Ticket</th><th>Customer</th><th>Product</th><th>Pincode</th><th>Stage</th></tr>${ticketRowsHtml(state.tickets)}</table>` : '<div class="empty">No submissions returned by Clappia.</div>')}
     </div>`;
   return html;
@@ -1117,7 +1182,7 @@ function renderFieldPage(){
       <td>${t.customerName}</td>
       <td>${t.technician}</td>
       <td>${t.appointment ? t.appointment.replace('T',' ') : '—'}</td>
-      <td>${!t.techCheckIn ? '<span class="tag amber">Awaiting check-in</span>' : (!t.visitOutcome ? '<span class="tag blue">Checked in</span>' : '<span class="tag green">Outcome recorded</span>')}</td>
+      <td>${!t.visitOutcome ? '<span class="tag amber">Awaiting visit</span>' : '<span class="tag green">Outcome recorded</span>'}</td>
     </tr>`).join('');
   return `
     <div class="card">
@@ -1231,7 +1296,10 @@ function renderTicketDetail(t){
         ${brandBadge(t.brand, 30)}
         <div><div class="detail-title">${t.id}</div><div class="detail-sub">${t.ticketType==='registered'?'Registered Complaint':'General Enquiry'} · Created ${t.createdAt}</div></div>
       </div>
-      ${stageTag(t)}
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${refreshTicketsButton()}
+        ${stageTag(t)}
+      </div>
     </div>
     <div class="meta-grid">
       <div class="meta-item"><div class="l">Customer</div><div class="v">${t.customerName} (${t.customerType})</div></div>
@@ -1241,7 +1309,7 @@ function renderTicketDetail(t){
       <div class="meta-item"><div class="l">Product</div><div class="v">${t.product}</div></div>
       <div class="meta-item"><div class="l">Serial no.</div><div class="v">${t.serial||'—'}</div></div>
       <div class="meta-item"><div class="l">Pincode</div><div class="v">${t.pincode} ${t.mapped===true?'(mapped)':t.mapped===false?'(unmapped)':''}</div></div>
-      <div class="meta-item"><div class="l">Purchase date</div><div class="v">${t.purchaseDate || '—'}</div></div>
+      <div class="meta-item"><div class="l">Purchase date</div><div class="v">${t.purchaseDate ? displayPurchaseDate(t.purchaseDate) : '—'}</div></div>
       <div class="meta-item"><div class="l">Purchase channel</div><div class="v">${t.purchaseChannel || '—'}</div></div>
       <div class="meta-item"><div class="l">Complaint</div><div class="v">${t.complaint}</div></div>
       <div class="meta-item"><div class="l">Service centre</div><div class="v">${t.serviceCentre || '—'}</div></div>
@@ -1259,7 +1327,7 @@ function renderTicketDetail(t){
 
   html += renderMacroStepper(t);
 
-  if(t.mapped===false && !t.serviceCentre){
+  if(!t.visitOutcome && t.mapped===false && !t.serviceCentre){
     const role = 'branch';
     html += `<div class="card"><h3>Allocation ${roleBadge(role)} <span class="tag clappia">Clappia</span></h3>
       <div class="subnote">Pincode not covered — a person at the branch allocates this manually.</div>`;
@@ -1280,7 +1348,7 @@ function renderTicketDetail(t){
     html += `</div>`;
   }
 
-  if(t.serviceCentre && !t.technician){
+  if(!t.visitOutcome && t.serviceCentre && !t.technician){
     const role = 'branch';
     html += `<div class="card"><h3>Assign technician ${roleBadge(role)}</h3>`;
     if(!canAct(role)){ html += waitingBlock(role); }
@@ -1295,7 +1363,7 @@ function renderTicketDetail(t){
     html += `</div>`;
   }
 
-  if(t.technician && !t.appointment){
+  if(!t.visitOutcome && t.technician && !t.appointment){
     const role = 'branch';
     html += `<div class="card"><h3>Book appointment ${roleBadge(role)}</h3>`;
     if(!canAct(role)){ html += waitingBlock(role); }
@@ -1308,23 +1376,11 @@ function renderTicketDetail(t){
     html += `</div>`;
   }
 
-  if(t.appointment && !t.techCheckIn && !t.visitOutcome){
+  if(t.appointment && !t.visitOutcome){
     const role = 'technician';
-    html += `<div class="card"><h3>Technician on-site check-in ${roleBadge(role)}</h3>
-      <div class="pin-hint" style="margin-bottom:8px;">Customer shared this location at intake. Simulate the technician's GPS check-in below.</div>
-      ${renderPinBox('view', t.locationPin, null)}`;
-    if(!canAct(role)){ html += waitingBlock(role); }
-    else { html += `<div class="btn-row" style="margin-top:10px;"><button class="btn" data-action="tech-checkin" data-id="${t.id}">Simulate technician GPS check-in</button></div>`; }
-    html += `</div>`;
-  }
-
-  if(t.techCheckIn && !t.visitOutcome){
-    const role = 'technician';
-    const dist = pinDistance(t.locationPin, t.techCheckIn);
     const catEntry = getCatalogEntry(t.brand, t.product);
     html += `<div class="card"><h3>Field diagnosis — record visit outcome ${roleBadge(role)} <span class="tag clappia">Clappia</span></h3>`;
     html += noteStack([
-      dist>25 ? {type:'warn', text:"Check-in location is some distance from the customer&#39;s shared location — worth a quick verification."} : null,
       {type:'sap', text:`Product Master pulled live for ${t.product} before the technician records the outcome.`},
       {type:'clappia', text:"Recording an outcome here fires the field-team-entry stub — the exact hand-off a technician's mobile submission would make in production."},
     ]);
@@ -1610,18 +1666,6 @@ function renderLog(t){
   return `<div class="card"><h3>Activity log</h3><div class="log-list">${items}</div></div>`;
 }
 
-/* ========================= PIN WIDGET ========================= */
-function renderPinBox(mode, custPin, techPin){
-  const cust = custPin || {x:130,y:70};
-  let dots = `<div class="pin-dot" style="left:${cust.x}px;top:${cust.y}px;" title="Customer location"></div>`;
-  if(techPin) dots += `<div class="pin-dot tech" style="left:${techPin.x}px;top:${techPin.y}px;" title="Technician check-in"></div>`;
-  return `<div class="pin-box" id="pinBox" data-mode="${mode}">
-      <svg><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="var(--border)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/></svg>
-      ${dots}
-    </div><div class="pin-hint">${mode==='pick' ? 'Click anywhere to drop the customer&#39;s shared location pin' : 'Red = customer shared location'}</div>`;
-}
-function pinDistance(a,b){ if(!a||!b) return 0; return Math.sqrt(Math.pow(a.x-b.x,2)+Math.pow(a.y-b.y,2)); }
-
 /* ========================= NEW TICKET MODAL ========================= */
 const NEW_TICKET_APP_URL = 'https://stovekraft.embed-app.clappia.com/app/NEW103456';
 function openNewTicketModal(){
@@ -1666,7 +1710,8 @@ async function submitNewTicket(e){
   if(f.ticketType==='enquiry'){
     t.enquiryClosed = true;
     const r = await clappiaLookupPincode(t.pincode);
-    t.suggestedCentreCached = r.centre || DEFAULT_CENTRE;
+    t.mapped = r.mapped;
+    t.suggestedCentreCached = t.branchNameFromClappia || r.centre || DEFAULT_CENTRE;
     addLog(t, 'General enquiry received via ' + f.purchaseChannel);
     addLog(t, 'Enquiry auto-closed — service centre address shared with customer');
   } else {
@@ -1693,6 +1738,17 @@ async function handleAction(e){
   const action = el.dataset.action;
   const id = el.dataset.id;
   if(action==='nav'){ activePage = el.dataset.page; activeTicketId=null; saveState(); render(); return; }
+  if(action==='refresh-tickets'){
+    if(ticketsRefreshing) return;
+    ticketsRefreshing = true;
+    render();
+    await syncTicketsFromClappia();
+    ticketsRefreshing = false;
+    saveState();
+    render();
+    showToast(ticketsLoadError ? 'Could not refresh tickets' : 'Tickets refreshed');
+    return;
+  }
   if(action==='open-new-ticket'){ openNewTicketModal(); return; }
   if(action==='close-modal'){ closeNewTicketModal(); return; }
   if(action==='open-ticket'){ activeTicketId = id; render(); return; }
@@ -1718,14 +1774,6 @@ async function handleAction(e){
     state.tickets.push(wt); t.convertedTicketId = wt.id;
     addLog(t, 'Converted to Workshop Ticket ' + wt.id);
     saveState(); activeTicketId = wt.id; render(); showToast('Workshop Ticket ' + wt.id + ' created'); return;
-  }
-  if(action==='tech-checkin'){
-    if(!canAct('technician')) return;
-    const t = findTicket(id);
-    const base = t.locationPin || {x:130,y:70};
-    t.techCheckIn = { x: base.x + (Math.random()*30-15), y: base.y + (Math.random()*30-15) };
-    addLog(t, 'Technician checked in on-site');
-    saveState(); render(); return;
   }
   if(action==='set-outcome'){
     if(!canAct('technician')) return;
